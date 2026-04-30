@@ -326,9 +326,10 @@ class BetterOpenFileController {
         </section>
       </section>
 
-      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <div id="errorStatus" class="error-status" role="alert" hidden></div>
 
       <footer class="footer">
+        <div id="itemCount" class="item-count" aria-live="polite">0 items</div>
         <label for="fileNameInput">File name:</label>
         <input id="fileNameInput" aria-label="File name">
         <label for="filterSelect">Files of type:</label>

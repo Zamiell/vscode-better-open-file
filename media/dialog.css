@@ -322,22 +322,27 @@ select {
   color: inherit;
 }
 
-.status {
+.error-status {
   border-top: 1px solid var(--vscode-panel-border);
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-errorForeground);
   min-height: 28px;
   padding: 6px 8px;
 }
 
-.status.error {
-  color: var(--vscode-errorForeground);
+.error-status[hidden] {
+  display: none;
+}
+
+.item-count {
+  color: var(--vscode-descriptionForeground);
+  min-width: 72px;
 }
 
 .footer {
   border-bottom: 0;
   border-top: 1px solid var(--vscode-panel-border);
   grid-template-columns:
-    auto minmax(120px, 1fr) auto minmax(120px, 240px)
+    auto auto minmax(120px, 1fr) auto minmax(120px, 240px)
     auto auto;
 }
 

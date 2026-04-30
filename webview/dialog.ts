@@ -101,14 +101,15 @@ const elements = {
   addressInput: getElement("addressInput", HTMLInputElement),
   backButton: getElement("backButton", HTMLButtonElement),
   cancelButton: getElement("cancelButton", HTMLButtonElement),
+  errorStatus: getElement("errorStatus", HTMLDivElement),
   fileList: getElement("fileList", HTMLDivElement),
   fileNameInput: getElement("fileNameInput", HTMLInputElement),
   filterSelect: getElement("filterSelect", HTMLSelectElement),
   forwardButton: getElement("forwardButton", HTMLButtonElement),
+  itemCount: getElement("itemCount", HTMLDivElement),
   openButton: getElement("openButton", HTMLButtonElement),
   placesList: getElement("placesList", HTMLDivElement),
   refreshButton: getElement("refreshButton", HTMLButtonElement),
-  status: getElement("status", HTMLDivElement),
   upButton: getElement("upButton", HTMLButtonElement),
 };
 
@@ -137,7 +138,7 @@ globalThis.addEventListener(
       return;
     }
 
-    setStatus(message.message, true);
+    showError(message.message);
   },
 );
 
@@ -259,7 +260,8 @@ function setDirectoryListing(listing: DirectoryListing) {
 
   renderFileList();
   updateNavigationButtons();
-  setStatus(`${listing.entries.length} items`);
+  hideError();
+  setItemCount(listing.entries.length);
 }
 
 function navigateTo(directoryPath: string) {
@@ -449,7 +451,7 @@ function openSelection() {
 
   const typedName = elements.fileNameInput.value.trim();
   if (typedName === "") {
-    setStatus("Select a file to open.", true);
+    showError("Select a file to open.");
     return;
   }
 
@@ -538,9 +540,18 @@ function updateNavigationButtons() {
   elements.upButton.disabled = state.parentPath === undefined;
 }
 
-function setStatus(message: string, isError = false) {
-  elements.status.textContent = message;
-  elements.status.classList.toggle("error", isError);
+function setItemCount(count: number) {
+  elements.itemCount.textContent = `${count} ${count === 1 ? "item" : "items"}`;
+}
+
+function showError(message: string) {
+  elements.errorStatus.textContent = message;
+  elements.errorStatus.hidden = false;
+}
+
+function hideError() {
+  elements.errorStatus.textContent = "";
+  elements.errorStatus.hidden = true;
 }
 
 function formatSize(size: number): string {
