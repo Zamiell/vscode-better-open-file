@@ -11,8 +11,18 @@ export default defineConfig(
   ...completeConfigBase,
 
   {
+    ignores: ["media/**"],
+  },
+
+  {
     rules: {
-      // Insert changed or disabled rules here, if necessary.
+      "complete/prefer-is-array": "off",
+      "import-x/no-extraneous-dependencies": [
+        "error",
+        {
+          devDependencies: true,
+        },
+      ],
     },
   },
 );
