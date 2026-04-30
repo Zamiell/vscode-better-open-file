@@ -4,7 +4,6 @@ declare function acquireVsCodeApi(): {
 
 interface DialogOptions {
   readonly allowMultipleSelection: boolean;
-  readonly foldersFirst: boolean;
 }
 
 interface FileEntry {
@@ -54,7 +53,6 @@ interface DialogState {
   currentPath: string;
   entries: readonly FileEntry[];
   filteredEntries: readonly FileEntry[];
-  foldersFirst: boolean;
   forwardStack: string[];
   historyStack: string[];
   parentPath: string | undefined;
@@ -64,11 +62,10 @@ interface DialogState {
 const vscode = acquireVsCodeApi();
 
 const state: DialogState = {
-  allowMultipleSelection: false,
+  allowMultipleSelection: true,
   currentPath: "",
   entries: [],
   filteredEntries: [],
-  foldersFirst: true,
   forwardStack: [],
   historyStack: [],
   parentPath: undefined,
@@ -105,7 +102,6 @@ globalThis.addEventListener(
 
     if (message.type === "init") {
       state.allowMultipleSelection = message.options.allowMultipleSelection;
-      state.foldersFirst = message.options.foldersFirst;
       elements.addressInput.value = message.directory;
       return;
     }

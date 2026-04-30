@@ -49,13 +49,8 @@
       "properties": {
         "betterOpenFile.allowMultipleSelection": {
           "type": "boolean",
-          "default": false,
-          "description": "Allow selecting and opening multiple files at once."
-        },
-        "betterOpenFile.foldersFirst": {
-          "type": "boolean",
           "default": true,
-          "description": "Sort folders before files in the Better Open File dialog."
+          "description": "Allow selecting and opening multiple files at once."
         }
       }
     }

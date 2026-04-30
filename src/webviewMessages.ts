@@ -123,7 +123,7 @@ async function sendDirectoryListing(
   requestedPath: string,
 ) {
   try {
-    const listing = await listDirectory(requestedPath, getDialogOptions());
+    const listing = await listDirectory(requestedPath);
     await panel.webview.postMessage({
       listing,
       type: "directoryListing",

@@ -1,11 +1,10 @@
 import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import path from "node:path";
-import type { DialogOptions, DirectoryListing, FileEntry } from "./types.js";
+import type { DirectoryListing, FileEntry } from "./types.js";
 
 export async function listDirectory(
   directoryPath: string,
-  options: DialogOptions,
 ): Promise<DirectoryListing> {
   const absolutePath = path.resolve(directoryPath);
   const directoryStat = await fs.stat(absolutePath);
@@ -22,7 +21,7 @@ export async function listDirectory(
     ),
   );
 
-  entries.sort((a, b) => compareEntries(a, b, options.foldersFirst));
+  entries.sort(compareEntries);
 
   return {
     entries,
@@ -62,12 +61,8 @@ function getParentPath(directoryPath: string): string | undefined {
   return parentPath === directoryPath ? undefined : parentPath;
 }
 
-function compareEntries(
-  first: FileEntry,
-  second: FileEntry,
-  foldersFirst: boolean,
-): number {
-  if (foldersFirst && first.isDirectory !== second.isDirectory) {
+function compareEntries(first: FileEntry, second: FileEntry): number {
+  if (first.isDirectory !== second.isDirectory) {
     return first.isDirectory ? -1 : 1;
   }
 

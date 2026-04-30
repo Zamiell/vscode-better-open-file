@@ -1,6 +1,5 @@
 export interface DialogOptions {
   readonly allowMultipleSelection: boolean;
-  readonly foldersFirst: boolean;
 }
 
 export interface FileEntry {
