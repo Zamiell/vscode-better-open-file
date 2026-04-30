@@ -11,7 +11,3 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 }
-
-export function deactivate(): void {
-  // VS Code disposes registered subscriptions automatically.
-}
