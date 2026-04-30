@@ -6,9 +6,6 @@ import path from "node:path";
 import * as vscode from "vscode";
 
 const commandId = "betterOpenFile.openFile";
-const lastDirectoryKey = "lastDirectory";
-
-type InitialDirectory = "currentEditor" | "home" | "lastUsed" | "workspaceRoot";
 
 interface DialogOptions {
   readonly allowMultipleSelection: boolean;
@@ -151,18 +148,18 @@ class BetterOpenFileController {
   }
 
   private async initialize(panel: vscode.WebviewPanel): Promise<void> {
-    const initialDirectory = await this.getInitialDirectory();
+    const startupDirectory = await this.getStartupDirectory();
     const options = getDialogOptions();
     const locations = await getLocations();
 
     await panel.webview.postMessage({
-      directory: initialDirectory,
+      directory: startupDirectory,
       filters: getFilters(),
       locations,
       options,
       type: "init",
     });
-    await this.sendDirectoryListing(panel, initialDirectory);
+    await this.sendDirectoryListing(panel, startupDirectory);
   }
 
   private async openSelection(
@@ -210,14 +207,6 @@ class BetterOpenFileController {
       ),
     );
 
-    const lastOpenedFile = selectedFiles.at(-1);
-    if (lastOpenedFile !== undefined) {
-      await this.context.globalState.update(
-        lastDirectoryKey,
-        path.dirname(lastOpenedFile.absolutePath),
-      );
-    }
-
     panel.dispose();
   }
 
@@ -227,7 +216,6 @@ class BetterOpenFileController {
   ): Promise<void> {
     try {
       const listing = await listDirectory(requestedPath, getDialogOptions());
-      await this.context.globalState.update(lastDirectoryKey, listing.path);
       await panel.webview.postMessage({
         listing,
         type: "directoryListing",
@@ -237,37 +225,15 @@ class BetterOpenFileController {
     }
   }
 
-  private async getInitialDirectory(): Promise<string> {
-    const config = vscode.workspace.getConfiguration("betterOpenFile");
-    const mode = config.get<InitialDirectory>(
-      "initialDirectory",
-      "workspaceRoot",
-    );
+  private async getStartupDirectory(): Promise<string> {
+    const activeFile = vscode.window.activeTextEditor?.document.uri;
+    const candidates: string[] =
+      activeFile?.scheme === "file" ? [path.dirname(activeFile.fsPath)] : [];
 
-    const candidates: string[] = [];
-
-    if (mode === "lastUsed") {
-      const lastDirectory =
-        this.context.globalState.get<string>(lastDirectoryKey);
-      if (lastDirectory !== undefined) {
-        candidates.push(lastDirectory);
-      }
+    const workspaceFolder = getFirstLocalWorkspaceFolder();
+    if (workspaceFolder !== undefined) {
+      candidates.push(workspaceFolder.uri.fsPath);
     }
-
-    if (mode === "currentEditor") {
-      const activeFile = vscode.window.activeTextEditor?.document.uri;
-      if (activeFile?.scheme === "file") {
-        candidates.push(path.dirname(activeFile.fsPath));
-      }
-    }
-
-    if (mode === "workspaceRoot") {
-      const workspaceFolder = getFirstLocalWorkspaceFolder();
-      if (workspaceFolder !== undefined) {
-        candidates.push(workspaceFolder.uri.fsPath);
-      }
-    }
-
     candidates.push(os.homedir());
 
     const candidateChecks = await Promise.all(

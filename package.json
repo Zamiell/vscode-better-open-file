@@ -47,17 +47,6 @@
     "configuration": {
       "title": "Better Open File",
       "properties": {
-        "betterOpenFile.initialDirectory": {
-          "type": "string",
-          "enum": [
-            "workspaceRoot",
-            "currentEditor",
-            "home",
-            "lastUsed"
-          ],
-          "default": "workspaceRoot",
-          "description": "Controls which directory is shown first when the Better Open File dialog opens."
-        },
         "betterOpenFile.showHiddenFiles": {
           "type": "boolean",
           "default": false,

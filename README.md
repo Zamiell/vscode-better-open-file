@@ -21,7 +21,6 @@ In VS Code, use the `Run Extension` launch configuration.
 
 ## Configuration
 
-- `betterOpenFile.initialDirectory`: choose `workspaceRoot`, `currentEditor`, `home`, or `lastUsed`.
 - `betterOpenFile.showHiddenFiles`: show hidden files and folders.
 - `betterOpenFile.allowMultipleSelection`: allow opening multiple selected files.
 - `betterOpenFile.foldersFirst`: sort folders before files.
