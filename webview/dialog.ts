@@ -75,6 +75,10 @@ const state: DialogState = {
   selectedPaths: new Set<string>(),
 };
 
+const fileListSearchResetMs = 1000;
+let fileListSearchPrefix = "";
+let fileListSearchUpdatedAt = 0;
+
 const elements = {
   addressInput: getElement("addressInput", HTMLInputElement),
   backButton: getElement("backButton", HTMLButtonElement),
@@ -195,6 +199,7 @@ function setDirectoryListing(listing: DirectoryListing) {
   state.entries = listing.entries;
   state.parentPath = listing.parentPath;
   state.selectedPaths.clear();
+  resetFileListSearch();
   elements.addressInput.value = listing.path;
   elements.fileNameInput.value = "";
 
@@ -404,7 +409,14 @@ function handleFileListKeydown(event: KeyboardEvent) {
   }
 
   if (event.key === "Enter") {
+    resetFileListSearch();
     openSelection();
+    return;
+  }
+
+  if (isFileListSearchKey(event)) {
+    event.preventDefault();
+    selectSearchMatch(event.key);
     return;
   }
 
@@ -412,6 +424,7 @@ function handleFileListKeydown(event: KeyboardEvent) {
     return;
   }
 
+  resetFileListSearch();
   event.preventDefault();
   const selectedPaths = [...state.selectedPaths];
   const selectedPath = selectedPaths.at(-1);
@@ -455,13 +468,94 @@ function handleFileListKeydown(event: KeyboardEvent) {
     return;
   }
 
-  selectEntry(nextEntry, event.ctrlKey || event.metaKey, event.shiftKey);
-  focusEntry(nextEntry.path);
+  selectAndFocusEntry(
+    nextEntry,
+    event.ctrlKey || event.metaKey,
+    event.shiftKey,
+  );
+}
+
+function isFileListSearchKey(event: KeyboardEvent): boolean {
+  return (
+    event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey
+  );
+}
+
+function selectSearchMatch(key: string) {
+  const now = Date.now();
+  if (now - fileListSearchUpdatedAt > fileListSearchResetMs) {
+    fileListSearchPrefix = "";
+  }
+
+  fileListSearchUpdatedAt = now;
+  const normalizedKey = key.toLowerCase();
+  if (
+    fileListSearchPrefix !== ""
+    && fileListSearchPrefix
+      === normalizedKey.repeat(fileListSearchPrefix.length)
+  ) {
+    fileListSearchPrefix = `${fileListSearchPrefix}${normalizedKey}`;
+    selectNextEntryStartingWith(normalizedKey);
+    return;
+  }
+
+  const nextPrefix = `${fileListSearchPrefix}${key}`.toLowerCase();
+  const nextMatch = findFirstEntryStartingWith(nextPrefix);
+  const searchPrefix = nextMatch === undefined ? normalizedKey : nextPrefix;
+  const matchingEntry = nextMatch ?? findFirstEntryStartingWith(searchPrefix);
+
+  fileListSearchPrefix = searchPrefix;
+  if (matchingEntry !== undefined) {
+    selectAndFocusEntry(matchingEntry, false, false);
+  }
+}
+
+function selectNextEntryStartingWith(prefix: string) {
+  const selectedPath = [...state.selectedPaths].at(-1);
+  const selectedIndex = state.filteredEntries.findIndex(
+    (entry) => entry.path === selectedPath,
+  );
+  const nextMatch =
+    findNextEntryStartingWith(prefix, selectedIndex + 1)
+    ?? findNextEntryStartingWith(prefix, 0);
+
+  if (nextMatch !== undefined) {
+    selectAndFocusEntry(nextMatch, false, false);
+  }
+}
+
+function findNextEntryStartingWith(
+  prefix: string,
+  startIndex: number,
+): FileEntry | undefined {
+  return state.filteredEntries
+    .slice(startIndex)
+    .find((entry) => entry.name.toLowerCase().startsWith(prefix));
+}
+
+function findFirstEntryStartingWith(prefix: string): FileEntry | undefined {
+  return state.filteredEntries.find((entry) =>
+    entry.name.toLowerCase().startsWith(prefix),
+  );
+}
+
+function selectAndFocusEntry(
+  entry: FileEntry,
+  toggleSelection: boolean,
+  rangeSelection: boolean,
+) {
+  selectEntry(entry, toggleSelection, rangeSelection);
+  focusEntry(entry.path);
   elements.fileList
-    .querySelector(getEntrySelector(nextEntry.path))
+    .querySelector(getEntrySelector(entry.path))
     ?.scrollIntoView({
       block: "nearest",
     });
+}
+
+function resetFileListSearch() {
+  fileListSearchPrefix = "";
+  fileListSearchUpdatedAt = 0;
 }
 
 function updateNavigationButtons() {
