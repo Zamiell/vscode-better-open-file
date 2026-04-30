@@ -113,18 +113,24 @@ async function openSelection(
     return;
   }
 
-  await Promise.all(
-    selectedFiles.map((selectedFile) =>
-      vscode.window.showTextDocument(
-        vscode.Uri.file(selectedFile.absolutePath),
-        {
-          preview: false,
-        },
-      ),
+  const selectedDocuments = await Promise.all(
+    selectedFiles.map(
+      async (selectedFile) =>
+        await vscode.workspace.openTextDocument(
+          vscode.Uri.file(selectedFile.absolutePath),
+        ),
     ),
   );
-
   panel.dispose();
+
+  await Promise.all(
+    selectedDocuments.map(
+      async (selectedDocument) =>
+        await vscode.window.showTextDocument(selectedDocument, {
+          preview: false,
+        }),
+    ),
+  );
 }
 
 async function sendDirectoryListing(
