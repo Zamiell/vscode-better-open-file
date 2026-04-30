@@ -91,12 +91,21 @@ async function openSelection(
     }),
   );
 
-  const directory = selectedFiles.find(
+  const selectedDirectories = selectedFiles.filter(
     (selectedFile) => selectedFile.isDirectory,
   );
-  if (directory !== undefined) {
+  const firstDirectory = selectedDirectories[0];
+  if (firstDirectory !== undefined) {
     if (selectedFiles.length === 1) {
-      await sendDirectoryListing(panel, directory.absolutePath);
+      await sendDirectoryListing(panel, firstDirectory.absolutePath);
+      return;
+    }
+
+    if (selectedDirectories.length === selectedFiles.length) {
+      await postError(
+        panel,
+        "You cannot open more than one directory at a time.",
+      );
       return;
     }
 
