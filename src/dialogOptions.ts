@@ -6,6 +6,5 @@ export function getDialogOptions(): DialogOptions {
   return {
     allowMultipleSelection: config.get("allowMultipleSelection", false),
     foldersFirst: config.get("foldersFirst", true),
-    showHiddenFiles: config.get("showHiddenFiles", false),
   };
 }

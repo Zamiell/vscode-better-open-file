@@ -17,9 +17,9 @@ export async function listDirectory(
     withFileTypes: true,
   });
   const entries = await Promise.all(
-    directoryEntries
-      .filter((dirent) => options.showHiddenFiles || !isHiddenName(dirent.name))
-      .map(async (dirent) => await toFileEntry(absolutePath, dirent)),
+    directoryEntries.map(
+      async (dirent) => await toFileEntry(absolutePath, dirent),
+    ),
   );
 
   entries.sort((a, b) => compareEntries(a, b, options.foldersFirst));
@@ -75,8 +75,4 @@ function compareEntries(
     numeric: true,
     sensitivity: "base",
   });
-}
-
-function isHiddenName(name: string): boolean {
-  return name.startsWith(".");
 }

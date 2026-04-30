@@ -47,11 +47,6 @@
     "configuration": {
       "title": "Better Open File",
       "properties": {
-        "betterOpenFile.showHiddenFiles": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show hidden files and directories in the Better Open File dialog."
-        },
         "betterOpenFile.allowMultipleSelection": {
           "type": "boolean",
           "default": false,
