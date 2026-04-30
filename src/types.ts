@@ -1,7 +1,3 @@
-export interface DialogOptions {
-  readonly allowMultipleSelection: boolean;
-}
-
 export interface FileEntry {
   readonly isDirectory: boolean;
   readonly modified: number;

@@ -7,9 +7,10 @@
     "Other"
   ],
   "keywords": [
-    "dialog",
-    "file",
     "open",
+    "file",
+    "simple",
+    "dialog",
     "windows"
   ],
   "homepage": "https://github.com/Zamiell/vscode-better-open-file",
@@ -43,17 +44,7 @@
         "title": "Open File",
         "category": "Better Open File"
       }
-    ],
-    "configuration": {
-      "title": "Better Open File",
-      "properties": {
-        "betterOpenFile.allowMultipleSelection": {
-          "type": "boolean",
-          "default": true,
-          "description": "Allow selecting and opening multiple files at once."
-        }
-      }
-    }
+    ]
   },
   "dependencies": {
     "@types/vscode": "1.100.0",

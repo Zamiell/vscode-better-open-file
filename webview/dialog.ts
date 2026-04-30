@@ -2,10 +2,6 @@ declare function acquireVsCodeApi(): {
   readonly postMessage: (message: WebviewToHostMessage) => void;
 };
 
-interface DialogOptions {
-  readonly allowMultipleSelection: boolean;
-}
-
 interface FileEntry {
   readonly isDirectory: boolean;
   readonly modified: number;
@@ -23,7 +19,6 @@ interface DirectoryListing {
 type HostToWebviewMessage =
   | {
       readonly directory: string;
-      readonly options: DialogOptions;
       readonly type: "init";
     }
   | {
@@ -49,7 +44,6 @@ type WebviewToHostMessage =
     };
 
 interface DialogState {
-  allowMultipleSelection: boolean;
   currentPath: string;
   entries: readonly FileEntry[];
   filteredEntries: readonly FileEntry[];
@@ -62,7 +56,6 @@ interface DialogState {
 const vscode = acquireVsCodeApi();
 
 const state: DialogState = {
-  allowMultipleSelection: true,
   currentPath: "",
   entries: [],
   filteredEntries: [],
@@ -101,7 +94,6 @@ globalThis.addEventListener(
     const message = event.data;
 
     if (message.type === "init") {
-      state.allowMultipleSelection = message.options.allowMultipleSelection;
       elements.addressInput.value = message.directory;
       return;
     }
@@ -325,7 +317,7 @@ function selectEntry(
   toggleSelection: boolean,
   rangeSelection: boolean,
 ) {
-  if (!state.allowMultipleSelection || (!toggleSelection && !rangeSelection)) {
+  if (!toggleSelection && !rangeSelection) {
     state.selectedPaths = new Set([entry.path]);
   } else if (toggleSelection && state.selectedPaths.has(entry.path)) {
     state.selectedPaths.delete(entry.path);

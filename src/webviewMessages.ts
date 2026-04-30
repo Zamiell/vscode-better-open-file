@@ -3,7 +3,6 @@ import * as fs from "node:fs/promises";
 import path from "node:path";
 import * as vscode from "vscode";
 import { listDirectory } from "./dialogFilesystem.js";
-import { getDialogOptions } from "./dialogOptions.js";
 
 type WebviewMessage =
   | {
@@ -60,11 +59,8 @@ async function initialize(
   panel: vscode.WebviewPanel,
   startupDirectory: string,
 ) {
-  const options = getDialogOptions();
-
   await panel.webview.postMessage({
     directory: startupDirectory,
-    options,
     type: "init",
   });
   await sendDirectoryListing(panel, startupDirectory);
@@ -79,12 +75,8 @@ async function openSelection(
     return;
   }
 
-  const options = getDialogOptions();
-  const pathsToOpen = options.allowMultipleSelection
-    ? selectedPaths
-    : selectedPaths.slice(0, 1);
   const selectedFiles = await Promise.all(
-    pathsToOpen.map(async (selectedPath) => {
+    selectedPaths.map(async (selectedPath) => {
       const absolutePath = path.resolve(selectedPath);
       const stat = await fs.stat(absolutePath);
       return { absolutePath, isDirectory: stat.isDirectory() };

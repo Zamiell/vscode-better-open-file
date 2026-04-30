@@ -19,8 +19,4 @@ bun run build
 
 In VS Code, use the `Run Extension` launch configuration.
 
-## Configuration
-
-- `betterOpenFile.allowMultipleSelection`: allow opening multiple selected files.
-
 To replace your normal open-file shortcut, bind `betterOpenFile.openFile` in your user keybindings.
