@@ -1,0 +1,32 @@
+{
+  "name": "vscode-better-open-file",
+  "version": "0.0.0",
+  "description": "A TypeScript project.",
+  "homepage": "https://github.com/Zamiell/vscode-better-open-file",
+  "bugs": {
+    "url": "https://github.com/Zamiell/vscode-better-open-file/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zamiell/vscode-better-open-file.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Zamiell",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun run ./scripts/build.ts",
+    "lint": "bun run ./scripts/lint.ts",
+    "publish": "complete-cli publish",
+    "start": "bun run ./src/main.ts",
+    "update": "complete-cli update"
+  },
+  "devDependencies": {
+    "complete-cli": "1.5.22",
+    "complete-lint": "5.11.0",
+    "complete-node": "16.4.1",
+    "typescript": "6.0.3"
+  }
+}
