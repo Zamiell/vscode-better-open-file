@@ -1,7 +1,7 @@
 {
   "name": "vscode-better-open-file",
   "displayName": "Better Open File",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A Windows-style custom file open dialog for Visual Studio Code.",
   "categories": [
     "Other"
