@@ -296,7 +296,9 @@ class BetterOpenFileController {
         <button id="forwardButton" class="icon-button" type="button" title="Forward" aria-label="Forward">
           <span class="navigation-icon forward-icon" aria-hidden="true"></span>
         </button>
-        <button id="upButton" type="button" title="Up">Up</button>
+        <button id="upButton" class="icon-button" type="button" title="Up" aria-label="Up">
+          <span class="navigation-icon up-icon" aria-hidden="true"></span>
+        </button>
         <button id="refreshButton" type="button" title="Refresh">Refresh</button>
         <input id="addressInput" class="address" aria-label="Folder path">
       </header>
