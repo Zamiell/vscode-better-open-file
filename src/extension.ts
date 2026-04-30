@@ -1,3 +1,4 @@
+import { isArray } from "complete-common";
 import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
@@ -602,7 +603,7 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
 
     case "openSelection": {
       if (
-        Array.isArray(rawMessage["paths"])
+        isArray(rawMessage["paths"])
         && rawMessage["paths"].every(
           (selectedPath) => typeof selectedPath === "string",
         )

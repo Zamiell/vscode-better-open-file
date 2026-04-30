@@ -16,7 +16,10 @@ export default defineConfig(
     },
   },
 
+  // @template-customization-start
   {
-    ignores: ["media/**"],
+    // Ignore compiled output.
+    ignores: ["media/dialog.js"],
   },
+  // @template-customization-end
 );

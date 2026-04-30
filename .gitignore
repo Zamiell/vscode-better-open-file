@@ -8,6 +8,7 @@ Thumbs.db
 
 # Compiled artifacts
 *.vsix
+media/dialog.js
 
 # ------------------------------
 # GitHub Node.gitignore template

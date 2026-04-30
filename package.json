@@ -76,10 +76,13 @@
       }
     }
   },
-  "devDependencies": {
+  "dependencies": {
     "@types/vscode": "1.100.0",
+    "complete-common": "2.27.1"
+  },
+  "devDependencies": {
     "@vscode/vsce": "3.6.0",
-    "complete-common": "2.27.1",
+    "complete-cli": "1.5.22",
     "complete-lint": "5.11.0",
     "complete-node": "16.4.1",
     "typescript": "6.0.3"

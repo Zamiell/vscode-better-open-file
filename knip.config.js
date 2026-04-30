@@ -7,10 +7,13 @@
 const config = {
   eslint: {},
   prettier: {},
-  ignore: ["media/dialog.js"],
+
+  /// ignore: ["media/dialog.js"],
 
   ignoreDependencies: [
     "complete-lint", // This is a linting meta-package.
+    "eslint-config-complete", // Provided by "complete-lint".
+    "eslint", // Provided by "complete-lint".
     "prettier", // Provided by "complete-lint".
     "prettier-plugin-organize-imports", // Provided by "complete-lint".
     "prettier-plugin-packagejson", // Provided by "complete-lint".

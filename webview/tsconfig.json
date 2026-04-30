@@ -1,0 +1,18 @@
+// A TypeScript configuration file for the browser script used by the webview.
+{
+  "$schema": "https://raw.githubusercontent.com/complete-ts/complete/main/packages/complete-tsconfig/schemas/tsconfig-strict-schema.json",
+
+  "extends": [
+    // https://github.com/complete-ts/complete/blob/main/packages/complete-tsconfig/tsconfig.base.json
+    "complete-tsconfig/tsconfig.base.json",
+
+    // https://github.com/complete-ts/complete/blob/main/packages/complete-tsconfig/tsconfig.browser.json
+    "complete-tsconfig/tsconfig.browser.json",
+  ],
+
+  "compilerOptions": {
+    "outDir": "../media",
+  },
+
+  "include": ["./**/*.ts"],
+}
