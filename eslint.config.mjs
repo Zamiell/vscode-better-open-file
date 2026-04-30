@@ -13,16 +13,4 @@ export default defineConfig(
   {
     ignores: ["media/**"],
   },
-
-  {
-    rules: {
-      "complete/prefer-is-array": "off",
-      "import-x/no-extraneous-dependencies": [
-        "error",
-        {
-          devDependencies: true,
-        },
-      ],
-    },
-  },
 );
