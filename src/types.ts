@@ -12,11 +12,6 @@ export interface FileEntry {
   readonly size: number;
 }
 
-export interface FileFilter {
-  readonly label: string;
-  readonly patterns: readonly string[];
-}
-
 export interface DirectoryListing {
   readonly entries: readonly FileEntry[];
   readonly parentPath: string | undefined;

@@ -15,11 +15,6 @@ interface FileEntry {
   readonly size: number;
 }
 
-interface FileFilter {
-  readonly label: string;
-  readonly patterns: readonly string[];
-}
-
 interface DirectoryListing {
   readonly entries: readonly FileEntry[];
   readonly parentPath: string | undefined;
@@ -29,7 +24,6 @@ interface DirectoryListing {
 type HostToWebviewMessage =
   | {
       readonly directory: string;
-      readonly filters: readonly FileFilter[];
       readonly options: DialogOptions;
       readonly type: "init";
     }
@@ -60,7 +54,6 @@ interface DialogState {
   currentPath: string;
   entries: readonly FileEntry[];
   filteredEntries: readonly FileEntry[];
-  filters: readonly FileFilter[];
   foldersFirst: boolean;
   forwardStack: string[];
   historyStack: string[];
@@ -75,7 +68,6 @@ const state: DialogState = {
   currentPath: "",
   entries: [],
   filteredEntries: [],
-  filters: [],
   foldersFirst: true,
   forwardStack: [],
   historyStack: [],
@@ -90,7 +82,6 @@ const elements = {
   errorStatus: getElement("errorStatus", HTMLDivElement),
   fileList: getElement("fileList", HTMLDivElement),
   fileNameInput: getElement("fileNameInput", HTMLInputElement),
-  filterSelect: getElement("filterSelect", HTMLSelectElement),
   forwardButton: getElement("forwardButton", HTMLButtonElement),
   itemCount: getElement("itemCount", HTMLDivElement),
   openButton: getElement("openButton", HTMLButtonElement),
@@ -111,8 +102,6 @@ globalThis.addEventListener(
     if (message.type === "init") {
       state.allowMultipleSelection = message.options.allowMultipleSelection;
       state.foldersFirst = message.options.foldersFirst;
-      state.filters = message.filters;
-      renderFilters();
       elements.addressInput.value = message.directory;
       return;
     }
@@ -141,10 +130,6 @@ function registerEventHandlers() {
     if (event.key === "Enter") {
       openSelection();
     }
-  });
-
-  elements.filterSelect.addEventListener("change", () => {
-    renderFileList();
   });
 
   elements.openButton.addEventListener("click", openSelection);
@@ -202,17 +187,6 @@ function registerEventHandlers() {
     },
     { capture: true },
   );
-}
-
-function renderFilters() {
-  elements.filterSelect.textContent = "";
-
-  for (const filter of state.filters) {
-    const option = document.createElement("option");
-    option.textContent = filter.label;
-    option.value = filter.patterns.join(";");
-    elements.filterSelect.append(option);
-  }
 }
 
 function setDirectoryListing(listing: DirectoryListing) {
@@ -316,7 +290,6 @@ function createFileRow(entry: FileEntry) {
 }
 
 function getFilteredEntries(): readonly FileEntry[] {
-  const filterPatterns = elements.filterSelect.value.split(";").filter(Boolean);
   const fileNameNeedle = elements.fileNameInput.value.trim().toLowerCase();
 
   return state.entries.filter((entry) => {
@@ -327,22 +300,8 @@ function getFilteredEntries(): readonly FileEntry[] {
       return false;
     }
 
-    if (entry.isDirectory || filterPatterns.includes("*")) {
-      return true;
-    }
-
-    return filterPatterns.some((pattern) =>
-      matchesPattern(entry.name, pattern),
-    );
+    return true;
   });
-}
-
-function matchesPattern(fileName: string, pattern: string) {
-  if (!pattern.startsWith("*.")) {
-    return pattern === "*" || fileName === pattern;
-  }
-
-  return fileName.toLowerCase().endsWith(pattern.slice(1).toLowerCase());
 }
 
 function selectEntry(

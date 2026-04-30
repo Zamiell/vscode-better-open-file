@@ -3,7 +3,7 @@ import * as fs from "node:fs/promises";
 import path from "node:path";
 import * as vscode from "vscode";
 import { listDirectory } from "./dialogFilesystem.js";
-import { getDialogOptions, getFilters } from "./dialogOptions.js";
+import { getDialogOptions } from "./dialogOptions.js";
 
 type WebviewMessage =
   | {
@@ -64,7 +64,6 @@ async function initialize(
 
   await panel.webview.postMessage({
     directory: startupDirectory,
-    filters: getFilters(),
     options,
     type: "init",
   });

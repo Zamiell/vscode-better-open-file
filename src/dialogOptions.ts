@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { DialogOptions, FileFilter } from "./types.js";
+import type { DialogOptions } from "./types.js";
 
 export function getDialogOptions(): DialogOptions {
   const config = vscode.workspace.getConfiguration("betterOpenFile");
@@ -8,28 +8,4 @@ export function getDialogOptions(): DialogOptions {
     foldersFirst: config.get("foldersFirst", true),
     showHiddenFiles: config.get("showHiddenFiles", false),
   };
-}
-
-export function getFilters(): readonly FileFilter[] {
-  return [
-    { label: "All files (*.*)", patterns: ["*"] },
-    {
-      label: "Source files",
-      patterns: [
-        "*.css",
-        "*.html",
-        "*.js",
-        "*.json",
-        "*.jsx",
-        "*.md",
-        "*.ts",
-        "*.tsx",
-      ],
-    },
-    { label: "Text files", patterns: ["*.md", "*.txt"] },
-    {
-      label: "Images",
-      patterns: ["*.gif", "*.jpg", "*.jpeg", "*.png", "*.webp"],
-    },
-  ];
 }
