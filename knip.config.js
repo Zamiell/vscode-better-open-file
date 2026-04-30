@@ -8,7 +8,8 @@ const config = {
   eslint: {},
   prettier: {},
 
-  /// ignore: ["media/dialog.js"],
+  // The "src/extension.ts" entry point is found automatically by Knip.
+  entry: ["webview/dialog.ts"],
 
   ignoreDependencies: [
     "complete-lint", // This is a linting meta-package.
