@@ -27,14 +27,14 @@
   "main": "./dist/extension.js",
   "files": [
     "dist",
-    "LICENSE",
     "media"
   ],
   "scripts": {
     "build": "bun run ./scripts/build.ts",
     "lint": "bun run ./scripts/lint.ts",
     "package": "bun run build && vsce package",
-    "publish": "vsce publish"
+    "publish": "vsce publish",
+    "update": "complete-cli update"
   },
   "contributes": {
     "commands": [
@@ -76,12 +76,10 @@
       }
     }
   },
-  "activationEvents": [
-    "onCommand:betterOpenFile.openFile"
-  ],
   "devDependencies": {
     "@types/vscode": "1.100.0",
     "@vscode/vsce": "3.6.0",
+    "complete-common": "2.27.1",
     "complete-lint": "5.11.0",
     "complete-node": "16.4.1",
     "eslint": "10.1.0",
