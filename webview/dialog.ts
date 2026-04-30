@@ -262,6 +262,7 @@ function setDirectoryListing(listing: DirectoryListing) {
   updateNavigationButtons();
   hideError();
   setItemCount(listing.entries.length);
+  updateOpenButton();
 }
 
 function navigateTo(directoryPath: string) {
@@ -411,6 +412,7 @@ function selectEntry(
 
   updateRenderedSelection();
   updateSelectedFileName();
+  updateOpenButton();
 }
 
 function focusEntry(entryPath: string) {
@@ -440,6 +442,10 @@ function updateSelectedFileName() {
       .map((entry) => entry.name)
       .join("; ");
   }
+}
+
+function updateOpenButton() {
+  elements.openButton.disabled = state.selectedPaths.size === 0;
 }
 
 function openSelection() {
