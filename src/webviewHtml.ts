@@ -52,11 +52,6 @@ export function getWebviewHtml(
       </header>
 
       <section class="body">
-        <nav class="places" aria-label="Places">
-          <div class="pane-title">Places</div>
-          <div id="placesList" class="places-list"></div>
-        </nav>
-
         <section class="files-pane" aria-label="Files">
           <div class="table-header" role="row">
             <button type="button" data-sort="name">Name</button>

@@ -2,7 +2,7 @@ import { isArray } from "complete-common";
 import * as fs from "node:fs/promises";
 import path from "node:path";
 import * as vscode from "vscode";
-import { getLocations, listDirectory } from "./dialogFilesystem.js";
+import { listDirectory } from "./dialogFilesystem.js";
 import { getDialogOptions, getFilters } from "./dialogOptions.js";
 
 type WebviewMessage =
@@ -61,12 +61,10 @@ async function initialize(
   startupDirectory: string,
 ) {
   const options = getDialogOptions();
-  const locations = await getLocations();
 
   await panel.webview.postMessage({
     directory: startupDirectory,
     filters: getFilters(),
-    locations,
     options,
     type: "init",
   });

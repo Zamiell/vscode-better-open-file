@@ -13,11 +13,6 @@ export interface FileEntry {
   readonly size: number;
 }
 
-export interface LocationEntry {
-  readonly label: string;
-  readonly path: string;
-}
-
 export interface FileFilter {
   readonly label: string;
   readonly patterns: readonly string[];

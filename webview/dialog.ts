@@ -21,11 +21,6 @@ interface FileFilter {
   readonly patterns: readonly string[];
 }
 
-interface LocationEntry {
-  readonly label: string;
-  readonly path: string;
-}
-
 interface DirectoryListing {
   readonly entries: readonly FileEntry[];
   readonly parentPath: string | undefined;
@@ -39,7 +34,6 @@ type HostToWebviewMessage =
   | {
       readonly directory: string;
       readonly filters: readonly FileFilter[];
-      readonly locations: readonly LocationEntry[];
       readonly options: DialogOptions;
       readonly type: "init";
     }
@@ -108,7 +102,6 @@ const elements = {
   forwardButton: getElement("forwardButton", HTMLButtonElement),
   itemCount: getElement("itemCount", HTMLDivElement),
   openButton: getElement("openButton", HTMLButtonElement),
-  placesList: getElement("placesList", HTMLDivElement),
   refreshButton: getElement("refreshButton", HTMLButtonElement),
   upButton: getElement("upButton", HTMLButtonElement),
 };
@@ -128,7 +121,6 @@ globalThis.addEventListener(
       state.foldersFirst = message.options.foldersFirst;
       state.filters = message.filters;
       renderFilters();
-      renderLocations(message.locations);
       elements.addressInput.value = message.directory;
       return;
     }
@@ -172,11 +164,7 @@ function registerEventHandlers() {
     vscode.postMessage({ path: state.currentPath, type: "listDirectory" });
   });
 
-  elements.upButton.addEventListener("click", () => {
-    if (state.parentPath !== undefined) {
-      navigateTo(state.parentPath);
-    }
-  });
+  elements.upButton.addEventListener("click", navigateUp);
 
   elements.backButton.addEventListener("click", () => {
     const previousPath = state.historyStack.pop();
@@ -197,12 +185,31 @@ function registerEventHandlers() {
   elements.fileList.addEventListener("keydown", (event) => {
     handleFileListKeydown(event);
   });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      vscode.postMessage({ type: "cancel" });
+  elements.fileList.addEventListener("click", (event) => {
+    if (isFileRowClick(event.target)) {
+      return;
     }
+
+    clearSelection();
+    elements.fileList.focus();
   });
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.altKey && event.key === "ArrowUp") {
+        event.preventDefault();
+        event.stopPropagation();
+        navigateUp();
+        return;
+      }
+
+      if (event.key === "Escape") {
+        vscode.postMessage({ type: "cancel" });
+      }
+    },
+    { capture: true },
+  );
 
   for (const sortButton of document.querySelectorAll<HTMLButtonElement>(
     "[data-sort]",
@@ -234,22 +241,6 @@ function renderFilters() {
   }
 }
 
-function renderLocations(locations: readonly LocationEntry[]) {
-  elements.placesList.textContent = "";
-
-  for (const location of locations) {
-    const button = document.createElement("button");
-    button.className = "place-button";
-    button.title = location.path;
-    button.textContent = location.label;
-    button.type = "button";
-    button.addEventListener("click", () => {
-      navigateTo(location.path);
-    });
-    elements.placesList.append(button);
-  }
-}
-
 function setDirectoryListing(listing: DirectoryListing) {
   state.currentPath = listing.path;
   state.entries = listing.entries;
@@ -276,6 +267,12 @@ function navigateTo(directoryPath: string) {
 
   state.forwardStack = [];
   requestDirectory(directoryPath);
+}
+
+function navigateUp() {
+  if (state.parentPath !== undefined) {
+    navigateTo(state.parentPath);
+  }
 }
 
 function requestDirectory(directoryPath: string) {
@@ -413,6 +410,21 @@ function selectEntry(
   updateRenderedSelection();
   updateSelectedFileName();
   updateOpenButton();
+}
+
+function clearSelection() {
+  state.selectedPaths.clear();
+  elements.fileNameInput.value = "";
+  updateRenderedSelection();
+  updateOpenButton();
+}
+
+function isFileRowClick(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element
+    && target.closest(".file-row") !== null
+    && elements.fileList.contains(target)
+  );
 }
 
 function focusEntry(entryPath: string) {

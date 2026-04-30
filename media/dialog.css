@@ -126,10 +126,18 @@ select {
 }
 
 .dialog {
+  border: 1px solid var(--vscode-panel-border);
+  cursor: default;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
   height: calc(100vh - 32px);
   min-height: 360px;
+  user-select: none;
+}
+
+.dialog input {
+  cursor: text;
+  user-select: text;
 }
 
 .toolbar,
@@ -153,43 +161,8 @@ select {
 
 .body {
   display: grid;
-  grid-template-columns: minmax(150px, 220px) 1fr;
+  grid-template-columns: 1fr;
   min-height: 0;
-}
-
-.places {
-  background: var(--vscode-sideBar-background);
-  border-right: 1px solid var(--vscode-panel-border);
-  min-width: 0;
-  overflow: auto;
-  padding: 8px;
-}
-
-.pane-title {
-  color: var(--vscode-descriptionForeground);
-  font-size: 0.9em;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-}
-
-.places-list {
-  display: grid;
-  gap: 2px;
-}
-
-.place-button {
-  background: transparent;
-  border-color: transparent;
-  color: var(--vscode-foreground);
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.place-button:hover,
-.place-button:focus {
-  background: var(--vscode-list-hoverBackground);
 }
 
 .files-pane {
@@ -355,10 +328,6 @@ select {
 @media (max-width: 700px) {
   .body {
     grid-template-columns: 1fr;
-  }
-
-  .places {
-    display: none;
   }
 
   .table-header,
