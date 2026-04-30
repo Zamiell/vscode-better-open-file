@@ -124,6 +124,7 @@ function registerEventHandlers() {
 
   elements.fileNameInput.addEventListener("input", () => {
     renderFileList();
+    selectFirstEntry(false);
   });
 
   elements.fileNameInput.addEventListener("keydown", (event) => {
@@ -198,10 +199,10 @@ function setDirectoryListing(listing: DirectoryListing) {
   elements.fileNameInput.value = "";
 
   renderFileList();
+  selectFirstEntry(true);
   updateNavigationButtons();
   hideError();
   setItemCount(listing.entries.length);
-  updateOpenButton();
 }
 
 function navigateTo(directoryPath: string) {
@@ -234,8 +235,6 @@ function renderFileList() {
   for (const entry of state.filteredEntries) {
     elements.fileList.append(createFileRow(entry));
   }
-
-  updateSelectedFileName();
 }
 
 function createFileRow(entry: FileEntry) {
@@ -318,15 +317,29 @@ function selectEntry(
   }
 
   updateRenderedSelection();
-  updateSelectedFileName();
   updateOpenButton();
 }
 
 function clearSelection() {
   state.selectedPaths.clear();
-  elements.fileNameInput.value = "";
   updateRenderedSelection();
   updateOpenButton();
+}
+
+function selectFirstEntry(focusSelectedEntry: boolean) {
+  const firstEntry = state.filteredEntries[0];
+  if (firstEntry === undefined) {
+    state.selectedPaths.clear();
+    updateOpenButton();
+    return;
+  }
+
+  state.selectedPaths = new Set([firstEntry.path]);
+  updateRenderedSelection();
+  updateOpenButton();
+  if (focusSelectedEntry) {
+    focusEntry(firstEntry.path);
+  }
 }
 
 function isFileRowClick(target: EventTarget | null): boolean {
@@ -352,17 +365,6 @@ function updateRenderedSelection() {
       rowPath !== undefined && state.selectedPaths.has(rowPath);
     row.classList.toggle("selected", isSelected);
     row.ariaSelected = String(isSelected);
-  }
-}
-
-function updateSelectedFileName() {
-  const selectedEntries = state.filteredEntries.filter((entry) =>
-    state.selectedPaths.has(entry.path),
-  );
-  if (selectedEntries.length > 0) {
-    elements.fileNameInput.value = selectedEntries
-      .map((entry) => entry.name)
-      .join("; ");
   }
 }
 
