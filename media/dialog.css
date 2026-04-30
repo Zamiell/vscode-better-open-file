@@ -53,6 +53,53 @@ button.primary:focus {
   background: var(--vscode-button-hoverBackground);
 }
 
+.icon-button {
+  align-items: center;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.navigation-icon {
+  display: inline-block;
+  height: 14px;
+  position: relative;
+  width: 16px;
+}
+
+.navigation-icon::before {
+  background: currentcolor;
+  content: "";
+  height: 1.5px;
+  left: 2px;
+  position: absolute;
+  top: 6px;
+  width: 12px;
+}
+
+.navigation-icon::after {
+  border-color: currentcolor;
+  border-style: solid;
+  border-width: 0 0 1.5px 1.5px;
+  content: "";
+  height: 6px;
+  position: absolute;
+  top: 3px;
+  width: 6px;
+}
+
+.back-icon::after {
+  left: 2px;
+  transform: rotate(45deg);
+}
+
+.forward-icon::after {
+  right: 2px;
+  transform: rotate(225deg);
+}
+
 input,
 select {
   background: var(--vscode-input-background);

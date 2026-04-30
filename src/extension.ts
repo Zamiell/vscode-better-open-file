@@ -290,8 +290,12 @@ class BetterOpenFileController {
   <body>
     <main class="dialog" aria-label="Better Open File">
       <header class="toolbar" aria-label="Navigation">
-        <button id="backButton" type="button" title="Back">Back</button>
-        <button id="forwardButton" type="button" title="Forward">Forward</button>
+        <button id="backButton" class="icon-button" type="button" title="Back" aria-label="Back">
+          <span class="navigation-icon back-icon" aria-hidden="true"></span>
+        </button>
+        <button id="forwardButton" class="icon-button" type="button" title="Forward" aria-label="Forward">
+          <span class="navigation-icon forward-icon" aria-hidden="true"></span>
+        </button>
         <button id="upButton" type="button" title="Up">Up</button>
         <button id="refreshButton" type="button" title="Refresh">Refresh</button>
         <input id="addressInput" class="address" aria-label="Folder path">
