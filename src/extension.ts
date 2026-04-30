@@ -4,6 +4,10 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import path from "node:path";
 import * as vscode from "vscode";
+import {
+  getActiveFilePathFromSources,
+  type TabInputLike,
+} from "./startupDirectory.js";
 
 const commandId = "betterOpenFile.openFile";
 
@@ -57,8 +61,8 @@ type WebviewMessage =
 export function activate(context: vscode.ExtensionContext): void {
   const controller = new BetterOpenFileController(context);
   context.subscriptions.push(
-    vscode.commands.registerCommand(commandId, () => {
-      controller.open();
+    vscode.commands.registerCommand(commandId, async () => {
+      await controller.open();
     }),
   );
 }
@@ -76,12 +80,13 @@ class BetterOpenFileController {
     this.context = context;
   }
 
-  public open(): void {
+  public async open(): Promise<void> {
     if (this.panel !== undefined) {
       this.panel.reveal(vscode.ViewColumn.Active);
       return;
     }
 
+    const startupDirectory = await this.getStartupDirectory();
     const panel = vscode.window.createWebviewPanel(
       "betterOpenFile",
       "Better Open File",
@@ -106,7 +111,7 @@ class BetterOpenFileController {
     panel.webview.html = this.getHtml(panel.webview);
     panel.webview.onDidReceiveMessage(
       async (rawMessage: unknown) => {
-        await this.handleMessage(panel, rawMessage);
+        await this.handleMessage(panel, rawMessage, startupDirectory);
       },
       undefined,
       this.context.subscriptions,
@@ -116,6 +121,7 @@ class BetterOpenFileController {
   private async handleMessage(
     panel: vscode.WebviewPanel,
     rawMessage: unknown,
+    startupDirectory: string,
   ): Promise<void> {
     const message = parseWebviewMessage(rawMessage);
     if (message === undefined) {
@@ -125,7 +131,7 @@ class BetterOpenFileController {
 
     switch (message.type) {
       case "ready": {
-        await this.initialize(panel);
+        await this.initialize(panel, startupDirectory);
         break;
       }
 
@@ -147,8 +153,10 @@ class BetterOpenFileController {
     }
   }
 
-  private async initialize(panel: vscode.WebviewPanel): Promise<void> {
-    const startupDirectory = await this.getStartupDirectory();
+  private async initialize(
+    panel: vscode.WebviewPanel,
+    startupDirectory: string,
+  ): Promise<void> {
     const options = getDialogOptions();
     const locations = await getLocations();
 
@@ -226,9 +234,9 @@ class BetterOpenFileController {
   }
 
   private async getStartupDirectory(): Promise<string> {
-    const activeFile = vscode.window.activeTextEditor?.document.uri;
+    const activeFilePath = getActiveFilePath();
     const candidates: string[] =
-      activeFile?.scheme === "file" ? [path.dirname(activeFile.fsPath)] : [];
+      activeFilePath === undefined ? [] : [path.dirname(activeFilePath)];
 
     const workspaceFolder = getFirstLocalWorkspaceFolder();
     if (workspaceFolder !== undefined) {
@@ -489,6 +497,30 @@ async function getDrivePaths(): Promise<readonly string[]> {
   );
 
   return checks.filter((drivePath) => drivePath !== undefined);
+}
+
+function getActiveFilePath(): string | undefined {
+  const activeEditorUri = vscode.window.activeTextEditor?.document.uri;
+  const activeTabInput =
+    vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+  if (activeTabInput instanceof vscode.TabInputText) {
+    return getActiveFilePathFromSources(activeEditorUri, {
+      kind: "text",
+      uri: activeTabInput.uri,
+    });
+  }
+
+  if (activeTabInput instanceof vscode.TabInputTextDiff) {
+    return getActiveFilePathFromSources(activeEditorUri, {
+      kind: "textDiff",
+      modified: activeTabInput.modified,
+    });
+  }
+
+  return getActiveFilePathFromSources(
+    activeEditorUri,
+    undefined satisfies TabInputLike,
+  );
 }
 
 function getFirstLocalWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
