@@ -15,24 +15,24 @@ const state = {
     sortDirection: "asc",
 };
 const elements = {
-    addressInput: getElement("addressInput"),
-    backButton: getElement("backButton"),
-    cancelButton: getElement("cancelButton"),
-    fileList: getElement("fileList"),
-    fileNameInput: getElement("fileNameInput"),
-    filterSelect: getElement("filterSelect"),
-    forwardButton: getElement("forwardButton"),
-    openButton: getElement("openButton"),
-    placesList: getElement("placesList"),
-    refreshButton: getElement("refreshButton"),
-    status: getElement("status"),
-    upButton: getElement("upButton"),
+    addressInput: getElement("addressInput", HTMLInputElement),
+    backButton: getElement("backButton", HTMLButtonElement),
+    cancelButton: getElement("cancelButton", HTMLButtonElement),
+    fileList: getElement("fileList", HTMLDivElement),
+    fileNameInput: getElement("fileNameInput", HTMLInputElement),
+    filterSelect: getElement("filterSelect", HTMLSelectElement),
+    forwardButton: getElement("forwardButton", HTMLButtonElement),
+    openButton: getElement("openButton", HTMLButtonElement),
+    placesList: getElement("placesList", HTMLDivElement),
+    refreshButton: getElement("refreshButton", HTMLButtonElement),
+    status: getElement("status", HTMLDivElement),
+    upButton: getElement("upButton", HTMLButtonElement),
 };
-window.addEventListener("DOMContentLoaded", () => {
+globalThis.addEventListener("DOMContentLoaded", () => {
     registerEventHandlers();
     vscode.postMessage({ type: "ready" });
 });
-window.addEventListener("message", (event) => {
+globalThis.addEventListener("message", (event) => {
     const message = event.data;
     if (message.type === "init") {
         state.allowMultipleSelection = message.options.allowMultipleSelection;
@@ -116,7 +116,7 @@ function registerEventHandlers() {
     }
 }
 function renderFilters() {
-    elements.filterSelect.replaceChildren();
+    elements.filterSelect.textContent = "";
     for (const filter of state.filters) {
         const option = document.createElement("option");
         option.textContent = filter.label;
@@ -125,7 +125,7 @@ function renderFilters() {
     }
 }
 function renderLocations(locations) {
-    elements.placesList.replaceChildren();
+    elements.placesList.textContent = "";
     for (const location of locations) {
         const button = document.createElement("button");
         button.className = "place-button";
@@ -164,7 +164,7 @@ function requestDirectory(directoryPath) {
 }
 function renderFileList() {
     state.filteredEntries = getFilteredEntries();
-    elements.fileList.replaceChildren();
+    elements.fileList.textContent = "";
     for (const entry of state.filteredEntries) {
         elements.fileList.append(createFileRow(entry));
     }
@@ -193,7 +193,7 @@ function createFileRow(entry) {
     row.append(modified);
     const type = document.createElement("div");
     type.className = "file-meta";
-    type.textContent = entry.isDirectory ? "Folder" : entry.extension || "File";
+    type.textContent = getEntryTypeLabel(entry);
     row.append(type);
     const size = document.createElement("div");
     size.className = "file-meta";
@@ -227,22 +227,18 @@ function getFilteredEntries() {
         }
         return filterPatterns.some((pattern) => matchesPattern(entry.name, pattern));
     })
-        .sort(compareEntries);
+        .toSorted(compareEntries);
 }
 function compareEntries(first, second) {
     if (state.foldersFirst && first.isDirectory !== second.isDirectory) {
         return first.isDirectory ? -1 : 1;
     }
-    let result = 0;
-    if (state.sortBy === "modified" || state.sortBy === "size") {
-        result = first[state.sortBy] - second[state.sortBy];
-    }
-    else {
-        result = String(first[state.sortBy]).localeCompare(String(second[state.sortBy]), undefined, {
+    const result = state.sortBy === "modified" || state.sortBy === "size"
+        ? first[state.sortBy] - second[state.sortBy]
+        : first[state.sortBy].localeCompare(second[state.sortBy], undefined, {
             numeric: true,
             sensitivity: "base",
         });
-    }
     return state.sortDirection === "asc" ? result : -result;
 }
 function matchesPattern(fileName, pattern) {
@@ -315,25 +311,34 @@ function handleFileListKeydown(event) {
         openSelection();
         return;
     }
-    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+    if (!["ArrowDown", "ArrowUp", "End", "Home"].includes(event.key)) {
         return;
     }
     event.preventDefault();
     const selectedPaths = [...state.selectedPaths];
-    const selectedPath = selectedPaths[selectedPaths.length - 1];
+    const selectedPath = selectedPaths.at(-1);
     const selectedIndex = state.filteredEntries.findIndex((entry) => entry.path === selectedPath);
-    let nextIndex = selectedIndex;
-    if (event.key === "ArrowDown") {
-        nextIndex = Math.min(state.filteredEntries.length - 1, selectedIndex + 1);
-    }
-    else if (event.key === "ArrowUp") {
-        nextIndex = Math.max(0, selectedIndex - 1);
-    }
-    else if (event.key === "Home") {
-        nextIndex = 0;
-    }
-    else if (event.key === "End") {
-        nextIndex = state.filteredEntries.length - 1;
+    let nextIndex;
+    switch (event.key) {
+        case "ArrowDown": {
+            nextIndex = Math.min(state.filteredEntries.length - 1, selectedIndex + 1);
+            break;
+        }
+        case "ArrowUp": {
+            nextIndex = Math.max(0, selectedIndex - 1);
+            break;
+        }
+        case "End": {
+            nextIndex = state.filteredEntries.length - 1;
+            break;
+        }
+        case "Home": {
+            nextIndex = 0;
+            break;
+        }
+        default: {
+            return;
+        }
     }
     if (nextIndex < 0) {
         nextIndex = 0;
@@ -369,20 +374,23 @@ function formatSize(size) {
     return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 function cssEscape(value) {
-    if (globalThis.CSS?.escape !== undefined) {
-        return globalThis.CSS.escape(value);
-    }
-    return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+    return globalThis.CSS.escape(value);
 }
 function getEntrySelector(entryPath) {
     return `[data-path="${cssEscape(entryPath)}"]`;
 }
-function getElement(id) {
+function getElement(id, expectedType) {
     const element = document.querySelector(`#${id}`);
-    if (element === null) {
-        throw new Error(`Missing element: ${id}`);
+    if (!(element instanceof expectedType)) {
+        throw new TypeError(`Missing element: ${id}`);
     }
     return element;
+}
+function getEntryTypeLabel(entry) {
+    if (entry.isDirectory) {
+        return "Folder";
+    }
+    return entry.extension === "" ? "File" : entry.extension;
 }
 function parseSortBy(value) {
     if (value === "extension"

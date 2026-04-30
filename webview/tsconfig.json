@@ -11,6 +11,7 @@
   ],
 
   "compilerOptions": {
+    "lib": ["DOM", "ES2023"],
     "outDir": "../media",
   },
 
