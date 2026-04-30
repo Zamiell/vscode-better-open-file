@@ -176,14 +176,15 @@ select {
   background: var(--vscode-editorGroupHeader-tabsBackground);
   border-bottom: 1px solid var(--vscode-panel-border);
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) 170px 120px 100px;
+  grid-template-columns: minmax(180px, 1fr) 170px 100px;
 }
 
-.table-header button {
+.table-header-cell {
   background: transparent;
   border: 0;
   border-right: 1px solid var(--vscode-panel-border);
   color: var(--vscode-foreground);
+  padding: 4px 10px;
   text-align: left;
 }
 
@@ -197,7 +198,7 @@ select {
   border: 1px solid transparent;
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(180px, 1fr) 170px 120px 100px;
+  grid-template-columns: minmax(180px, 1fr) 170px 100px;
   min-height: 26px;
   padding: 2px 8px;
 }
@@ -335,7 +336,7 @@ select {
     grid-template-columns: minmax(160px, 1fr) 120px;
   }
 
-  .table-header button:nth-child(n + 3),
+  .table-header-cell:nth-child(n + 3),
   .file-row .file-meta:nth-child(n + 3) {
     display: none;
   }

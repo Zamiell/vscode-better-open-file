@@ -5,7 +5,6 @@ export interface DialogOptions {
 }
 
 export interface FileEntry {
-  readonly extension: string;
   readonly isDirectory: boolean;
   readonly modified: number;
   readonly name: string;

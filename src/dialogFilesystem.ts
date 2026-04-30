@@ -49,7 +49,6 @@ async function toFileEntry(
   const entryIsDirectory = stat.isDirectory();
 
   return {
-    extension: entryIsDirectory ? "Folder" : path.extname(dirent.name).slice(1),
     isDirectory: entryIsDirectory,
     modified: stat.mtimeMs,
     name: dirent.name,

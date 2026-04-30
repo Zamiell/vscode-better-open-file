@@ -54,10 +54,9 @@ export function getWebviewHtml(
       <section class="body">
         <section class="files-pane" aria-label="Files">
           <div class="table-header" role="row">
-            <button type="button" data-sort="name">Name</button>
-            <button type="button" data-sort="modified">Date modified</button>
-            <button type="button" data-sort="extension">Type</button>
-            <button type="button" data-sort="size">Size</button>
+            <div class="table-header-cell" role="columnheader">Name</div>
+            <div class="table-header-cell" role="columnheader">Date modified</div>
+            <div class="table-header-cell" role="columnheader">Size</div>
           </div>
           <div
             id="fileList"

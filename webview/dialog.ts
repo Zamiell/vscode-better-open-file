@@ -8,7 +8,6 @@ interface DialogOptions {
 }
 
 interface FileEntry {
-  readonly extension: string;
   readonly isDirectory: boolean;
   readonly modified: number;
   readonly name: string;
@@ -26,9 +25,6 @@ interface DirectoryListing {
   readonly parentPath: string | undefined;
   readonly path: string;
 }
-
-type SortBy = "extension" | "modified" | "name" | "size";
-type SortDirection = "asc" | "desc";
 
 type HostToWebviewMessage =
   | {
@@ -70,8 +66,6 @@ interface DialogState {
   historyStack: string[];
   parentPath: string | undefined;
   selectedPaths: Set<string>;
-  sortBy: SortBy;
-  sortDirection: SortDirection;
 }
 
 const vscode = acquireVsCodeApi();
@@ -87,8 +81,6 @@ const state: DialogState = {
   historyStack: [],
   parentPath: undefined,
   selectedPaths: new Set<string>(),
-  sortBy: "name",
-  sortDirection: "asc",
 };
 
 const elements = {
@@ -210,24 +202,6 @@ function registerEventHandlers() {
     },
     { capture: true },
   );
-
-  for (const sortButton of document.querySelectorAll<HTMLButtonElement>(
-    "[data-sort]",
-  )) {
-    sortButton.addEventListener("click", () => {
-      const nextSortBy = parseSortBy(sortButton.dataset["sort"]);
-      if (nextSortBy === undefined) {
-        return;
-      }
-
-      state.sortDirection =
-        state.sortBy === nextSortBy && state.sortDirection === "asc"
-          ? "desc"
-          : "asc";
-      state.sortBy = nextSortBy;
-      renderFileList();
-    });
-  }
 }
 
 function renderFilters() {
@@ -319,11 +293,6 @@ function createFileRow(entry: FileEntry) {
   modified.textContent = new Date(entry.modified).toLocaleString();
   row.append(modified);
 
-  const type = document.createElement("div");
-  type.className = "file-meta";
-  type.textContent = getEntryTypeLabel(entry);
-  row.append(type);
-
   const size = document.createElement("div");
   size.className = "file-meta";
   size.textContent = entry.isDirectory ? "" : formatSize(entry.size);
@@ -350,40 +319,22 @@ function getFilteredEntries(): readonly FileEntry[] {
   const filterPatterns = elements.filterSelect.value.split(";").filter(Boolean);
   const fileNameNeedle = elements.fileNameInput.value.trim().toLowerCase();
 
-  return [...state.entries]
-    .filter((entry) => {
-      if (
-        fileNameNeedle !== ""
-        && !entry.name.toLowerCase().includes(fileNameNeedle)
-      ) {
-        return false;
-      }
+  return state.entries.filter((entry) => {
+    if (
+      fileNameNeedle !== ""
+      && !entry.name.toLowerCase().includes(fileNameNeedle)
+    ) {
+      return false;
+    }
 
-      if (entry.isDirectory || filterPatterns.includes("*")) {
-        return true;
-      }
+    if (entry.isDirectory || filterPatterns.includes("*")) {
+      return true;
+    }
 
-      return filterPatterns.some((pattern) =>
-        matchesPattern(entry.name, pattern),
-      );
-    })
-    .toSorted(compareEntries);
-}
-
-function compareEntries(first: FileEntry, second: FileEntry) {
-  if (state.foldersFirst && first.isDirectory !== second.isDirectory) {
-    return first.isDirectory ? -1 : 1;
-  }
-
-  const result =
-    state.sortBy === "modified" || state.sortBy === "size"
-      ? first[state.sortBy] - second[state.sortBy]
-      : first[state.sortBy].localeCompare(second[state.sortBy], undefined, {
-          numeric: true,
-          sensitivity: "base",
-        });
-
-  return state.sortDirection === "asc" ? result : -result;
+    return filterPatterns.some((pattern) =>
+      matchesPattern(entry.name, pattern),
+    );
+  });
 }
 
 function matchesPattern(fileName: string, pattern: string) {
@@ -602,25 +553,4 @@ function getElement<ElementType extends HTMLElement>(
   }
 
   return element;
-}
-
-function getEntryTypeLabel(entry: FileEntry): string {
-  if (entry.isDirectory) {
-    return "Folder";
-  }
-
-  return entry.extension === "" ? "File" : entry.extension;
-}
-
-function parseSortBy(value: string | undefined): SortBy | undefined {
-  if (
-    value === "extension"
-    || value === "modified"
-    || value === "name"
-    || value === "size"
-  ) {
-    return value;
-  }
-
-  return undefined;
 }
