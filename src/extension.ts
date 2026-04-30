@@ -299,7 +299,12 @@ class BetterOpenFileController {
         <button id="upButton" class="icon-button" type="button" title="Up" aria-label="Up">
           <span class="navigation-icon up-icon" aria-hidden="true"></span>
         </button>
-        <button id="refreshButton" type="button" title="Refresh">Refresh</button>
+        <button id="refreshButton" class="icon-button" type="button" title="Refresh" aria-label="Refresh">
+          <svg class="refresh-icon" aria-hidden="true" viewBox="0 0 16 16" focusable="false">
+            <path d="M13 5.5A5.5 5.5 0 1 0 13.5 10" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"/>
+            <path d="M13 2.5v3h-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"/>
+          </svg>
+        </button>
         <input id="addressInput" class="address" aria-label="Folder path">
       </header>
 

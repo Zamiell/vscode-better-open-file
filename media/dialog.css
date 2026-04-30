@@ -113,6 +113,12 @@ button.primary:focus {
   transform: rotate(135deg);
 }
 
+.refresh-icon {
+  display: block;
+  height: 16px;
+  width: 16px;
+}
+
 input,
 select {
   background: var(--vscode-input-background);
