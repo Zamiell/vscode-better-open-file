@@ -4,10 +4,8 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import path from "node:path";
 import * as vscode from "vscode";
-import {
-  getActiveFilePathFromSources,
-  type TabInputLike,
-} from "./startupDirectory.js";
+import type { TabInputLike } from "./startupDirectory.js";
+import { getActiveFilePathFromSources } from "./startupDirectory.js";
 
 const commandId = "betterOpenFile.openFile";
 
@@ -86,7 +84,7 @@ class BetterOpenFileController {
       return;
     }
 
-    const startupDirectory = await this.getStartupDirectory();
+    const startupDirectory = await getStartupDirectory();
     const panel = vscode.window.createWebviewPanel(
       "betterOpenFile",
       "Better Open File",
@@ -111,153 +109,11 @@ class BetterOpenFileController {
     panel.webview.html = this.getHtml(panel.webview);
     panel.webview.onDidReceiveMessage(
       async (rawMessage: unknown) => {
-        await this.handleMessage(panel, rawMessage, startupDirectory);
+        await handleMessage(panel, rawMessage, startupDirectory);
       },
       undefined,
       this.context.subscriptions,
     );
-  }
-
-  private async handleMessage(
-    panel: vscode.WebviewPanel,
-    rawMessage: unknown,
-    startupDirectory: string,
-  ): Promise<void> {
-    const message = parseWebviewMessage(rawMessage);
-    if (message === undefined) {
-      await postError(panel, "The dialog sent an invalid message.");
-      return;
-    }
-
-    switch (message.type) {
-      case "ready": {
-        await this.initialize(panel, startupDirectory);
-        break;
-      }
-
-      case "listDirectory":
-      case "navigate": {
-        await this.sendDirectoryListing(panel, message.path);
-        break;
-      }
-
-      case "openSelection": {
-        await this.openSelection(panel, message.paths);
-        break;
-      }
-
-      case "cancel": {
-        panel.dispose();
-        break;
-      }
-    }
-  }
-
-  private async initialize(
-    panel: vscode.WebviewPanel,
-    startupDirectory: string,
-  ): Promise<void> {
-    const options = getDialogOptions();
-    const locations = await getLocations();
-
-    await panel.webview.postMessage({
-      directory: startupDirectory,
-      filters: getFilters(),
-      locations,
-      options,
-      type: "init",
-    });
-    await this.sendDirectoryListing(panel, startupDirectory);
-  }
-
-  private async openSelection(
-    panel: vscode.WebviewPanel,
-    selectedPaths: readonly string[],
-  ): Promise<void> {
-    if (selectedPaths.length === 0) {
-      await postError(panel, "Select a file to open.");
-      return;
-    }
-
-    const options = getDialogOptions();
-    const pathsToOpen = options.allowMultipleSelection
-      ? selectedPaths
-      : selectedPaths.slice(0, 1);
-    const selectedFiles = await Promise.all(
-      pathsToOpen.map(async (selectedPath) => {
-        const absolutePath = path.resolve(selectedPath);
-        const stat = await fs.stat(absolutePath);
-        return { absolutePath, isDirectory: stat.isDirectory() };
-      }),
-    );
-
-    const directory = selectedFiles.find(
-      (selectedFile) => selectedFile.isDirectory,
-    );
-    if (directory !== undefined) {
-      if (selectedFiles.length === 1) {
-        await this.sendDirectoryListing(panel, directory.absolutePath);
-        return;
-      }
-
-      await postError(panel, "Folders cannot be opened with files.");
-      return;
-    }
-
-    await Promise.all(
-      selectedFiles.map((selectedFile) =>
-        vscode.window.showTextDocument(
-          vscode.Uri.file(selectedFile.absolutePath),
-          {
-            preview: false,
-          },
-        ),
-      ),
-    );
-
-    panel.dispose();
-  }
-
-  private async sendDirectoryListing(
-    panel: vscode.WebviewPanel,
-    requestedPath: string,
-  ): Promise<void> {
-    try {
-      const listing = await listDirectory(requestedPath, getDialogOptions());
-      await panel.webview.postMessage({
-        listing,
-        type: "directoryListing",
-      });
-    } catch (error) {
-      await postError(panel, getErrorMessage(error));
-    }
-  }
-
-  private async getStartupDirectory(): Promise<string> {
-    const activeFilePath = getActiveFilePath();
-    const candidates: string[] =
-      activeFilePath === undefined ? [] : [path.dirname(activeFilePath)];
-
-    const workspaceFolder = getFirstLocalWorkspaceFolder();
-    if (workspaceFolder !== undefined) {
-      candidates.push(workspaceFolder.uri.fsPath);
-    }
-    candidates.push(os.homedir());
-
-    const candidateChecks = await Promise.all(
-      candidates.map(async (candidate) => ({
-        candidate,
-        isDirectory: await isDirectory(candidate),
-      })),
-    );
-    const firstDirectory = candidateChecks.find(
-      (candidateCheck) => candidateCheck.isDirectory,
-    );
-    if (firstDirectory !== undefined) {
-      return path.resolve(firstDirectory.candidate);
-    }
-
-    return path.parse(process.cwd()).root;
   }
 
   private getHtml(webview: vscode.Webview): string {
@@ -376,6 +232,148 @@ async function listDirectory(
     parentPath: getParentPath(absolutePath),
     path: absolutePath,
   };
+}
+
+async function handleMessage(
+  panel: vscode.WebviewPanel,
+  rawMessage: unknown,
+  startupDirectory: string,
+) {
+  const message = parseWebviewMessage(rawMessage);
+  if (message === undefined) {
+    await postError(panel, "The dialog sent an invalid message.");
+    return;
+  }
+
+  switch (message.type) {
+    case "ready": {
+      await initialize(panel, startupDirectory);
+      break;
+    }
+
+    case "listDirectory":
+    case "navigate": {
+      await sendDirectoryListing(panel, message.path);
+      break;
+    }
+
+    case "openSelection": {
+      await openSelection(panel, message.paths);
+      break;
+    }
+
+    case "cancel": {
+      panel.dispose();
+      break;
+    }
+  }
+}
+
+async function initialize(
+  panel: vscode.WebviewPanel,
+  startupDirectory: string,
+) {
+  const options = getDialogOptions();
+  const locations = await getLocations();
+
+  await panel.webview.postMessage({
+    directory: startupDirectory,
+    filters: getFilters(),
+    locations,
+    options,
+    type: "init",
+  });
+  await sendDirectoryListing(panel, startupDirectory);
+}
+
+async function openSelection(
+  panel: vscode.WebviewPanel,
+  selectedPaths: readonly string[],
+) {
+  if (selectedPaths.length === 0) {
+    await postError(panel, "Select a file to open.");
+    return;
+  }
+
+  const options = getDialogOptions();
+  const pathsToOpen = options.allowMultipleSelection
+    ? selectedPaths
+    : selectedPaths.slice(0, 1);
+  const selectedFiles = await Promise.all(
+    pathsToOpen.map(async (selectedPath) => {
+      const absolutePath = path.resolve(selectedPath);
+      const stat = await fs.stat(absolutePath);
+      return { absolutePath, isDirectory: stat.isDirectory() };
+    }),
+  );
+
+  const directory = selectedFiles.find(
+    (selectedFile) => selectedFile.isDirectory,
+  );
+  if (directory !== undefined) {
+    if (selectedFiles.length === 1) {
+      await sendDirectoryListing(panel, directory.absolutePath);
+      return;
+    }
+
+    await postError(panel, "Folders cannot be opened with files.");
+    return;
+  }
+
+  await Promise.all(
+    selectedFiles.map((selectedFile) =>
+      vscode.window.showTextDocument(
+        vscode.Uri.file(selectedFile.absolutePath),
+        {
+          preview: false,
+        },
+      ),
+    ),
+  );
+
+  panel.dispose();
+}
+
+async function sendDirectoryListing(
+  panel: vscode.WebviewPanel,
+  requestedPath: string,
+) {
+  try {
+    const listing = await listDirectory(requestedPath, getDialogOptions());
+    await panel.webview.postMessage({
+      listing,
+      type: "directoryListing",
+    });
+  } catch (error) {
+    await postError(panel, getErrorMessage(error));
+  }
+}
+
+async function getStartupDirectory(): Promise<string> {
+  const activeFilePath = getActiveFilePath();
+  const candidates: string[] =
+    activeFilePath === undefined ? [] : [path.dirname(activeFilePath)];
+
+  const workspaceFolder = getFirstLocalWorkspaceFolder();
+  if (workspaceFolder !== undefined) {
+    candidates.push(workspaceFolder.uri.fsPath);
+  }
+  candidates.push(os.homedir());
+
+  const candidateChecks = await Promise.all(
+    candidates.map(async (candidate) => ({
+      candidate,
+      isDirectory: await isDirectory(candidate),
+    })),
+  );
+  const firstDirectory = candidateChecks.find(
+    (candidateCheck) => candidateCheck.isDirectory,
+  );
+  if (firstDirectory !== undefined) {
+    return path.resolve(firstDirectory.candidate);
+  }
+
+  return path.parse(process.cwd()).root;
 }
 
 async function toFileEntry(
