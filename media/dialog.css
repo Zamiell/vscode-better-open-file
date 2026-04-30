@@ -14,6 +14,7 @@ body {
   color: var(--vscode-foreground);
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
+  padding: 16px;
 }
 
 button,
@@ -61,7 +62,7 @@ select {
 .dialog {
   display: grid;
   grid-template-rows: auto 1fr auto auto;
-  height: 100vh;
+  height: calc(100vh - 32px);
   min-height: 360px;
 }
 
