@@ -27,19 +27,15 @@ It is not possible for Visual Studio Code extensions to replace the vanilla "Fil
   },
 ```
 
-## Limitations
-
-Visual Studio Code extensions cannot replace the built-in `File: Open...` dialog or modify the internal "simple dialog". This extension provides a separate command that can be invoked from the Command Palette or assigned to a user keybinding.
-
 ## Development
 
-Install dependencies, build the extension, and launch an Extension Development Host:
+Clone the repository, then run:
 
 ```sh
-bun ci
-bun run build
+cd vscode-better-open-file
+bun ci # Install dependencies
+bun run build # To convert the TypeScript to JavaScript
+code . # Open Visual Studio Code to this directory
 ```
 
 In VS Code, use the `Run Extension` launch configuration.
-
-To replace your normal open-file shortcut, bind `betterOpenFile.openFile` in your user keybindings.
