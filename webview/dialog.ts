@@ -186,8 +186,24 @@ function registerEventHandlers() {
         return;
       }
 
+      if (isPlainAltKeyEvent(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
       if (event.key === "Escape") {
         vscode.postMessage({ type: "cancel" });
+      }
+    },
+    { capture: true },
+  );
+  document.addEventListener(
+    "keyup",
+    (event) => {
+      if (isPlainAltKeyEvent(event)) {
+        event.preventDefault();
+        event.stopPropagation();
       }
     },
     { capture: true },
@@ -478,6 +494,12 @@ function handleFileListKeydown(event: KeyboardEvent) {
 function isFileListSearchKey(event: KeyboardEvent): boolean {
   return (
     event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey
+  );
+}
+
+function isPlainAltKeyEvent(event: KeyboardEvent): boolean {
+  return (
+    event.key === "Alt" && !event.ctrlKey && !event.metaKey && !event.shiftKey
   );
 }
 
