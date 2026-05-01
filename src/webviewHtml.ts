@@ -33,16 +33,16 @@ export function getWebviewHtml(
   <body>
     <main class="dialog" aria-label="Better Open File">
       <header class="toolbar" aria-label="Navigation">
-        <button id="backButton" class="icon-button" type="button" title="Back" aria-label="Back">
+        <button id="backButton" class="icon-button" type="button" title="Back (Alt+Left)" aria-label="Back">
           <span class="navigation-icon back-icon" aria-hidden="true"></span>
         </button>
-        <button id="forwardButton" class="icon-button" type="button" title="Forward" aria-label="Forward">
+        <button id="forwardButton" class="icon-button" type="button" title="Forward (Alt+Right)" aria-label="Forward">
           <span class="navigation-icon forward-icon" aria-hidden="true"></span>
         </button>
-        <button id="upButton" class="icon-button" type="button" title="Up" aria-label="Up">
+        <button id="upButton" class="icon-button" type="button" title="Up (Alt+Up)" aria-label="Up">
           <span class="navigation-icon up-icon" aria-hidden="true"></span>
         </button>
-        <button id="refreshButton" class="icon-button" type="button" title="Refresh" aria-label="Refresh">
+        <button id="refreshButton" class="icon-button" type="button" title="Refresh (F5)" aria-label="Refresh">
           <svg class="refresh-icon" aria-hidden="true" viewBox="0 0 16 16" focusable="false">
             <path d="M13 5.5A5.5 5.5 0 1 0 13.5 10" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"/>
             <path d="M13 2.5v3h-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"/>
