@@ -50,6 +50,12 @@ interface DialogState {
   forwardStack: string[];
   historyStack: string[];
   parentPath: string | undefined;
+  pendingSelectedPath:
+    | {
+        readonly directoryPath: string;
+        readonly entryPath: string;
+      }
+    | undefined;
   selectedPaths: Set<string>;
 }
 
@@ -62,6 +68,7 @@ const state: DialogState = {
   forwardStack: [],
   historyStack: [],
   parentPath: undefined,
+  pendingSelectedPath: undefined,
   selectedPaths: new Set<string>(),
 };
 
@@ -99,6 +106,7 @@ globalThis.addEventListener(
       return;
     }
 
+    state.pendingSelectedPath = undefined;
     showError(message.message);
   },
 );
@@ -201,6 +209,7 @@ function registerEventHandlers() {
 }
 
 function setDirectoryListing(listing: DirectoryListing) {
+  const pendingSelectedPath = getPendingSelectedPath(listing.path);
   state.currentPath = listing.path;
   state.entries = listing.entries;
   state.parentPath = listing.parentPath;
@@ -209,7 +218,12 @@ function setDirectoryListing(listing: DirectoryListing) {
   elements.fileNameInput.value = "";
 
   renderFileList();
-  selectFirstEntry(true);
+  if (
+    pendingSelectedPath === undefined
+    || !selectEntryByPath(pendingSelectedPath, true)
+  ) {
+    selectFirstEntry(true);
+  }
   updateNavigationButtons();
   hideError();
   setItemCount(listing.entries.length);
@@ -225,7 +239,7 @@ function navigateTo(directoryPath: string) {
   }
 
   state.forwardStack = [];
-  requestDirectory(directoryPath);
+  requestDirectory(directoryPath, state.currentPath);
 }
 
 function navigateUp() {
@@ -238,7 +252,7 @@ function navigateBack() {
   const previousPath = state.historyStack.pop();
   if (previousPath !== undefined) {
     state.forwardStack.push(state.currentPath);
-    requestDirectory(previousPath);
+    requestDirectory(previousPath, state.currentPath);
   }
 }
 
@@ -246,11 +260,15 @@ function navigateForward() {
   const nextPath = state.forwardStack.pop();
   if (nextPath !== undefined) {
     state.historyStack.push(state.currentPath);
-    requestDirectory(nextPath);
+    requestDirectory(nextPath, state.currentPath);
   }
 }
 
-function requestDirectory(directoryPath: string) {
+function requestDirectory(directoryPath: string, selectedPath?: string) {
+  state.pendingSelectedPath =
+    selectedPath === undefined || selectedPath === ""
+      ? undefined
+      : { directoryPath, entryPath: selectedPath };
   vscode.postMessage({ path: directoryPath, type: "navigate" });
 }
 
@@ -386,6 +404,33 @@ function selectFirstEntry(focusSelectedEntry: boolean) {
   if (focusSelectedEntry) {
     focusEntry(firstEntry.path);
   }
+}
+
+function selectEntryByPath(entryPath: string, focusSelectedEntry: boolean) {
+  const entry = state.filteredEntries.find(
+    (filteredEntry) => filteredEntry.path === entryPath,
+  );
+  if (entry === undefined) {
+    return false;
+  }
+
+  selectEntry(entry, false, false);
+  if (focusSelectedEntry) {
+    focusEntry(entry.path);
+  }
+
+  return true;
+}
+
+function getPendingSelectedPath(directoryPath: string): string | undefined {
+  const { pendingSelectedPath } = state;
+  state.pendingSelectedPath = undefined;
+
+  if (pendingSelectedPath?.directoryPath !== directoryPath) {
+    return undefined;
+  }
+
+  return pendingSelectedPath.entryPath;
 }
 
 function isFileRowClick(target: EventTarget | null): boolean {
