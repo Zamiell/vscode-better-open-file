@@ -6,7 +6,6 @@
       "name": "vscode-better-open-file",
       "dependencies": {
         "@types/vscode": "1.118.0",
-        "complete-common": "2.27.1",
       },
       "devDependencies": {
         "@vscode/vsce": "3.9.1",

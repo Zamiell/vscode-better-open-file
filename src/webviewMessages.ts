@@ -1,4 +1,3 @@
-import { isArray } from "complete-common";
 import * as fs from "node:fs/promises";
 import path from "node:path";
 import * as vscode from "vscode";
@@ -161,7 +160,8 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
 
     case "openSelection": {
       if (
-        isArray(rawMessage["paths"])
+        // eslint-disable-next-line complete/prefer-is-array
+        Array.isArray(rawMessage["paths"])
         && rawMessage["paths"].every(
           (selectedPath) => typeof selectedPath === "string",
         )
