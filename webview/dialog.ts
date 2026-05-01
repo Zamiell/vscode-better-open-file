@@ -129,21 +129,9 @@ function registerEventHandlers() {
 
   elements.upButton.addEventListener("click", navigateUp);
 
-  elements.backButton.addEventListener("click", () => {
-    const previousPath = state.historyStack.pop();
-    if (previousPath !== undefined) {
-      state.forwardStack.push(state.currentPath);
-      requestDirectory(previousPath);
-    }
-  });
+  elements.backButton.addEventListener("click", navigateBack);
 
-  elements.forwardButton.addEventListener("click", () => {
-    const nextPath = state.forwardStack.pop();
-    if (nextPath !== undefined) {
-      state.historyStack.push(state.currentPath);
-      requestDirectory(nextPath);
-    }
-  });
+  elements.forwardButton.addEventListener("click", navigateForward);
 
   elements.fileList.addEventListener("keydown", (event) => {
     handleFileListKeydown(event);
@@ -164,6 +152,20 @@ function registerEventHandlers() {
         event.preventDefault();
         event.stopPropagation();
         navigateUp();
+        return;
+      }
+
+      if (event.altKey && event.key === "ArrowLeft") {
+        event.preventDefault();
+        event.stopPropagation();
+        navigateBack();
+        return;
+      }
+
+      if (event.altKey && event.key === "ArrowRight") {
+        event.preventDefault();
+        event.stopPropagation();
+        navigateForward();
         return;
       }
 
@@ -229,6 +231,22 @@ function navigateTo(directoryPath: string) {
 function navigateUp() {
   if (state.parentPath !== undefined) {
     navigateTo(state.parentPath);
+  }
+}
+
+function navigateBack() {
+  const previousPath = state.historyStack.pop();
+  if (previousPath !== undefined) {
+    state.forwardStack.push(state.currentPath);
+    requestDirectory(previousPath);
+  }
+}
+
+function navigateForward() {
+  const nextPath = state.forwardStack.pop();
+  if (nextPath !== undefined) {
+    state.historyStack.push(state.currentPath);
+    requestDirectory(nextPath);
   }
 }
 
