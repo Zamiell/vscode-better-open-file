@@ -32,6 +32,11 @@ type HostToWebviewMessage =
 
 type WebviewToHostMessage =
   | {
+      readonly currentDirectory: string;
+      readonly paths: readonly string[];
+      readonly type: "deleteSelection";
+    }
+  | {
       readonly path: string;
       readonly type: "listDirectory" | "navigate";
     }
@@ -265,14 +270,12 @@ function navigateForward() {
 }
 
 function requestDirectory(directoryPath: string, selectedPath?: string) {
-  state.pendingSelectedPath =
-    selectedPath === undefined || selectedPath === ""
-      ? undefined
-      : { directoryPath, entryPath: selectedPath };
+  setPendingSelectedPath(directoryPath, selectedPath);
   vscode.postMessage({ path: directoryPath, type: "navigate" });
 }
 
 function refreshDirectory() {
+  state.pendingSelectedPath = undefined;
   vscode.postMessage({ path: state.currentPath, type: "listDirectory" });
 }
 
@@ -281,7 +284,12 @@ function renderFileList() {
   elements.fileList.textContent = "";
 
   if (state.entries.length === 0) {
-    elements.fileList.append(createEmptyDirectoryMessage());
+    elements.fileList.append(createFileListMessage("[directory is empty]"));
+    return;
+  }
+
+  if (state.filteredEntries.length === 0) {
+    elements.fileList.append(createFileListMessage("[no files match]"));
     return;
   }
 
@@ -290,10 +298,10 @@ function renderFileList() {
   }
 }
 
-function createEmptyDirectoryMessage() {
+function createFileListMessage(messageText: string) {
   const message = document.createElement("div");
-  message.className = "empty-directory";
-  message.textContent = "[directory is empty]";
+  message.className = "file-list-message";
+  message.textContent = messageText;
 
   return message;
 }
@@ -433,6 +441,13 @@ function getPendingSelectedPath(directoryPath: string): string | undefined {
   return pendingSelectedPath.entryPath;
 }
 
+function setPendingSelectedPath(directoryPath: string, entryPath?: string) {
+  state.pendingSelectedPath =
+    entryPath === undefined || entryPath === ""
+      ? undefined
+      : { directoryPath, entryPath };
+}
+
 function isFileRowClick(target: EventTarget | null): boolean {
   return (
     target instanceof Element
@@ -509,8 +524,59 @@ function openSelection() {
   });
 }
 
+function deleteSelection() {
+  const selectedPaths = [...state.selectedPaths];
+  if (selectedPaths.length === 0) {
+    showError("Select a file to delete.");
+    return;
+  }
+
+  setPendingSelectedPath(
+    state.currentPath,
+    getPathToSelectAfterDelete(selectedPaths),
+  );
+
+  vscode.postMessage({
+    currentDirectory: state.currentPath,
+    paths: selectedPaths,
+    type: "deleteSelection",
+  });
+}
+
+function getPathToSelectAfterDelete(
+  selectedPaths: readonly string[],
+): string | undefined {
+  const selectedPathSet = new Set(selectedPaths);
+  const selectedIndexes = state.filteredEntries.flatMap((entry, index) =>
+    selectedPathSet.has(entry.path) ? [index] : [],
+  );
+  const firstSelectedIndex = selectedIndexes[0];
+  const lastSelectedIndex = selectedIndexes.at(-1);
+
+  if (firstSelectedIndex === undefined || lastSelectedIndex === undefined) {
+    return undefined;
+  }
+
+  const nextEntry = state.filteredEntries
+    .slice(lastSelectedIndex + 1)
+    .find((entry) => !selectedPathSet.has(entry.path));
+  if (nextEntry !== undefined) {
+    return nextEntry.path;
+  }
+
+  return state.filteredEntries
+    .slice(0, firstSelectedIndex)
+    .findLast((entry) => !selectedPathSet.has(entry.path))?.path;
+}
+
 function handleFileListKeydown(event: KeyboardEvent) {
   if (handleFileListFilterKeydown(event)) {
+    return;
+  }
+
+  if (event.key === "Delete") {
+    event.preventDefault();
+    deleteSelection();
     return;
   }
 

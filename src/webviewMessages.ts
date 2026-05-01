@@ -8,6 +8,11 @@ type WebviewMessage =
       readonly type: "cancel";
     }
   | {
+      readonly currentDirectory: string;
+      readonly paths: readonly string[];
+      readonly type: "deleteSelection";
+    }
+  | {
       readonly path: string;
       readonly type: "listDirectory" | "navigate";
     }
@@ -44,6 +49,11 @@ export async function handleMessage(
 
     case "openSelection": {
       await openSelection(panel, message.paths);
+      break;
+    }
+
+    case "deleteSelection": {
+      await deleteSelection(panel, message.currentDirectory, message.paths);
       break;
     }
 
@@ -124,6 +134,51 @@ async function openSelection(
   );
 }
 
+async function deleteSelection(
+  panel: vscode.WebviewPanel,
+  currentDirectory: string,
+  selectedPaths: readonly string[],
+) {
+  try {
+    if (selectedPaths.length === 0) {
+      await postError(panel, "Select a file to delete.");
+      return;
+    }
+
+    const selectedFiles = await Promise.all(
+      selectedPaths.map(async (selectedPath) => {
+        const absolutePath = path.resolve(selectedPath);
+        const stat = await fs.stat(absolutePath);
+        return { absolutePath, isDirectory: stat.isDirectory() };
+      }),
+    );
+
+    const confirmation = await vscode.window.showWarningMessage(
+      getDeleteConfirmationMessage(selectedFiles),
+      { modal: true },
+      "Delete",
+    );
+    if (confirmation !== "Delete") {
+      return;
+    }
+
+    await Promise.all(
+      selectedFiles.map(async (selectedFile) => {
+        if (selectedFile.isDirectory) {
+          await fs.rm(selectedFile.absolutePath, { recursive: true });
+          return;
+        }
+
+        await fs.unlink(selectedFile.absolutePath);
+      }),
+    );
+
+    await sendDirectoryListing(panel, currentDirectory);
+  } catch (error) {
+    await postError(panel, getErrorMessage(error));
+  }
+}
+
 async function sendDirectoryListing(
   panel: vscode.WebviewPanel,
   requestedPath: string,
@@ -170,6 +225,17 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
       );
     }
 
+    case "deleteSelection": {
+      const { currentDirectory, paths } = rawMessage;
+
+      return typeof currentDirectory === "string"
+        // eslint-disable-next-line complete/prefer-is-array
+        && Array.isArray(paths)
+        && paths.every((selectedPath) => typeof selectedPath === "string")
+        ? { currentDirectory, paths, type: "deleteSelection" }
+        : undefined;
+    }
+
     default: {
       return undefined;
     }
@@ -182,6 +248,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "An unknown error occurred.";
+}
+
+function getDeleteConfirmationMessage(
+  selectedFiles: ReadonlyArray<{
+    readonly absolutePath: string;
+    readonly isDirectory: boolean;
+  }>,
+): string {
+  const firstSelectedFile = selectedFiles[0];
+  if (selectedFiles.length === 1 && firstSelectedFile !== undefined) {
+    return `Delete "${path.basename(firstSelectedFile.absolutePath)}"?`;
+  }
+
+  return `Delete ${selectedFiles.length} items?`;
 }
 
 async function postError(panel: vscode.WebviewPanel, message: string) {

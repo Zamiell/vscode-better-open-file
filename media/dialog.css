@@ -201,7 +201,7 @@ select {
   min-height: 26px;
 }
 
-.empty-directory {
+.file-list-message {
   color: var(--vscode-descriptionForeground);
   padding: 8px;
 }

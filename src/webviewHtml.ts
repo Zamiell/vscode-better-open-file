@@ -74,8 +74,8 @@ export function getWebviewHtml(
         <div id="itemCount" class="item-count" aria-live="polite">0 items</div>
         <label for="fileNameInput">Filter files:</label>
         <input id="fileNameInput" aria-label="Filter files">
-        <button id="openButton" type="button" class="primary" disabled>Open</button>
-        <button id="cancelButton" type="button">Cancel</button>
+        <button id="openButton" type="button" class="primary" title="Open (Enter)" disabled>Open</button>
+        <button id="cancelButton" type="button" title="Cancel (Escape)">Cancel</button>
       </footer>
     </main>
     <script nonce="${nonce}" src="${scriptUri}"></script>
