@@ -161,14 +161,13 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
     case "openSelection": {
       const { paths } = rawMessage;
 
-      if (
+      return (
         // eslint-disable-next-line complete/prefer-is-array
         Array.isArray(paths)
-        && paths.every((selectedPath) => typeof selectedPath === "string")
-      ) {
-        return { paths, type: "openSelection" };
-      }
-      return undefined;
+          && paths.every((selectedPath) => typeof selectedPath === "string")
+          ? { paths, type: "openSelection" }
+          : undefined
+      );
     }
 
     default: {
