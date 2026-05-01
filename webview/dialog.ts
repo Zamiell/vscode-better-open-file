@@ -125,9 +125,7 @@ function registerEventHandlers() {
     vscode.postMessage({ type: "cancel" });
   });
 
-  elements.refreshButton.addEventListener("click", () => {
-    vscode.postMessage({ path: state.currentPath, type: "listDirectory" });
-  });
+  elements.refreshButton.addEventListener("click", refreshDirectory);
 
   elements.upButton.addEventListener("click", navigateUp);
 
@@ -166,6 +164,13 @@ function registerEventHandlers() {
         event.preventDefault();
         event.stopPropagation();
         navigateUp();
+        return;
+      }
+
+      if (event.key === "F5") {
+        event.preventDefault();
+        event.stopPropagation();
+        refreshDirectory();
         return;
       }
 
@@ -229,6 +234,10 @@ function navigateUp() {
 
 function requestDirectory(directoryPath: string) {
   vscode.postMessage({ path: directoryPath, type: "navigate" });
+}
+
+function refreshDirectory() {
+  vscode.postMessage({ path: state.currentPath, type: "listDirectory" });
 }
 
 function renderFileList() {
