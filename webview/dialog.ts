@@ -365,6 +365,26 @@ function focusEntry(entryPath: string) {
     ?.focus();
 }
 
+function getEntryElement(entryPath: string): HTMLElement | null {
+  return elements.fileList.querySelector<HTMLElement>(
+    getEntrySelector(entryPath),
+  );
+}
+
+function scrollEntryIntoView(entryElement: HTMLElement) {
+  const listRect = elements.fileList.getBoundingClientRect();
+  const entryRect = entryElement.getBoundingClientRect();
+
+  if (entryRect.top < listRect.top) {
+    elements.fileList.scrollTop -= listRect.top - entryRect.top;
+    return;
+  }
+
+  if (entryRect.bottom > listRect.bottom) {
+    elements.fileList.scrollTop += entryRect.bottom - listRect.bottom;
+  }
+}
+
 function updateRenderedSelection() {
   for (const row of elements.fileList.querySelectorAll<HTMLElement>(
     ".file-row",
@@ -555,12 +575,13 @@ function selectAndFocusEntry(
   rangeSelection: boolean,
 ) {
   selectEntry(entry, toggleSelection, rangeSelection);
-  focusEntry(entry.path);
-  elements.fileList
-    .querySelector(getEntrySelector(entry.path))
-    ?.scrollIntoView({
-      block: "nearest",
-    });
+  const entryElement = getEntryElement(entry.path);
+  if (entryElement === null) {
+    return;
+  }
+
+  entryElement.focus({ preventScroll: true });
+  scrollEntryIntoView(entryElement);
 }
 
 function resetFileListSearch() {
