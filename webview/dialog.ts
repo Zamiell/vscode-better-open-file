@@ -111,8 +111,7 @@ function registerEventHandlers() {
   });
 
   elements.fileNameInput.addEventListener("input", () => {
-    renderFileList();
-    selectFirstEntry(false);
+    applyFileNameFilter(false);
   });
 
   elements.fileNameInput.addEventListener("keydown", (event) => {
@@ -236,9 +235,22 @@ function renderFileList() {
   state.filteredEntries = getFilteredEntries();
   elements.fileList.textContent = "";
 
+  if (state.entries.length === 0) {
+    elements.fileList.append(createEmptyDirectoryMessage());
+    return;
+  }
+
   for (const entry of state.filteredEntries) {
     elements.fileList.append(createFileRow(entry));
   }
+}
+
+function createEmptyDirectoryMessage() {
+  const message = document.createElement("div");
+  message.className = "empty-directory";
+  message.textContent = "[directory is empty]";
+
+  return message;
 }
 
 function createFileRow(entry: FileEntry) {
@@ -335,6 +347,9 @@ function selectFirstEntry(focusSelectedEntry: boolean) {
   if (firstEntry === undefined) {
     state.selectedPaths.clear();
     updateOpenButton();
+    if (focusSelectedEntry) {
+      elements.fileList.focus();
+    }
     return;
   }
 
@@ -423,6 +438,10 @@ function openSelection() {
 }
 
 function handleFileListKeydown(event: KeyboardEvent) {
+  if (handleFileListFilterKeydown(event)) {
+    return;
+  }
+
   if (state.filteredEntries.length === 0) {
     return;
   }
@@ -490,6 +509,33 @@ function isPlainAltKeyEvent(event: KeyboardEvent): boolean {
   return (
     event.key === "Alt" && !event.ctrlKey && !event.metaKey && !event.shiftKey
   );
+}
+
+function handleFileListFilterKeydown(event: KeyboardEvent): boolean {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.isComposing) {
+    return false;
+  }
+
+  if (event.key.length === 1) {
+    event.preventDefault();
+    elements.fileNameInput.value = `${elements.fileNameInput.value}${event.key}`;
+    applyFileNameFilter(true);
+    return true;
+  }
+
+  if (event.key === "Backspace" && elements.fileNameInput.value !== "") {
+    event.preventDefault();
+    elements.fileNameInput.value = elements.fileNameInput.value.slice(0, -1);
+    applyFileNameFilter(true);
+    return true;
+  }
+
+  return false;
+}
+
+function applyFileNameFilter(focusSelectedEntry: boolean) {
+  renderFileList();
+  selectFirstEntry(focusSelectedEntry);
 }
 
 function selectAndFocusEntry(

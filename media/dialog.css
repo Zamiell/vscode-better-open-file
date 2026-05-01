@@ -201,6 +201,11 @@ select {
   min-height: 26px;
 }
 
+.empty-directory {
+  color: var(--vscode-descriptionForeground);
+  padding: 8px;
+}
+
 .file-name,
 .file-meta {
   padding: 2px 8px;
