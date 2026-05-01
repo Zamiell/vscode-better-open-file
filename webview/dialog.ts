@@ -81,6 +81,7 @@ const elements = {
   addressInput: getElement("addressInput", HTMLInputElement),
   backButton: getElement("backButton", HTMLButtonElement),
   cancelButton: getElement("cancelButton", HTMLButtonElement),
+  clearFilterButton: getElement("clearFilterButton", HTMLButtonElement),
   errorStatus: getElement("errorStatus", HTMLDivElement),
   fileList: getElement("fileList", HTMLDivElement),
   fileNameInput: getElement("fileNameInput", HTMLInputElement),
@@ -131,6 +132,10 @@ function registerEventHandlers() {
     if (event.key === "Enter") {
       openSelection();
     }
+  });
+
+  elements.clearFilterButton.addEventListener("click", () => {
+    clearFileNameFilter(true);
   });
 
   elements.openButton.addEventListener("click", openSelection);
@@ -231,7 +236,6 @@ function setDirectoryListing(listing: DirectoryListing) {
   }
   updateNavigationButtons();
   hideError();
-  setItemCount(listing.entries.length);
 }
 
 function navigateTo(directoryPath: string) {
@@ -282,6 +286,7 @@ function refreshDirectory() {
 function renderFileList() {
   state.filteredEntries = getFilteredEntries();
   elements.fileList.textContent = "";
+  updateFilterControls();
 
   if (state.entries.length === 0) {
     elements.fileList.append(createFileListMessage("[directory is empty]"));
@@ -358,7 +363,7 @@ function createFileRow(entry: FileEntry) {
 }
 
 function getFilteredEntries(): readonly FileEntry[] {
-  const fileNameNeedle = elements.fileNameInput.value.trim().toLowerCase();
+  const fileNameNeedle = getFileNameFilter().toLowerCase();
 
   return state.entries.filter((entry) => {
     if (
@@ -671,6 +676,15 @@ function handleFileListFilterKeydown(event: KeyboardEvent): boolean {
   return false;
 }
 
+function clearFileNameFilter(focusSelectedEntry: boolean) {
+  if (elements.fileNameInput.value === "") {
+    return;
+  }
+
+  elements.fileNameInput.value = "";
+  applyFileNameFilter(focusSelectedEntry);
+}
+
 function applyFileNameFilter(focusSelectedEntry: boolean) {
   renderFileList();
   selectFirstEntry(focusSelectedEntry);
@@ -697,8 +711,20 @@ function updateNavigationButtons() {
   elements.upButton.disabled = state.parentPath === undefined;
 }
 
-function setItemCount(count: number) {
-  elements.itemCount.textContent = `${count} ${count === 1 ? "item" : "items"}`;
+function updateFilterControls() {
+  const filterIsActive = getFileNameFilter() !== "";
+  elements.clearFilterButton.hidden = elements.fileNameInput.value === "";
+  elements.itemCount.textContent = filterIsActive
+    ? `${state.filteredEntries.length} of ${formatItemCount(state.entries.length)}`
+    : formatItemCount(state.entries.length);
+}
+
+function formatItemCount(count: number): string {
+  return `${count} ${count === 1 ? "item" : "items"}`;
+}
+
+function getFileNameFilter(): string {
+  return elements.fileNameInput.value.trim();
 }
 
 function showError(message: string) {

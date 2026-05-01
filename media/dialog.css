@@ -329,7 +329,7 @@ select {
 .footer {
   border-bottom: 0;
   border-top: 1px solid var(--vscode-panel-border);
-  grid-template-columns: auto auto minmax(120px, 1fr) auto auto;
+  grid-template-columns: auto auto minmax(120px, 1fr) auto auto auto;
 }
 
 @media (max-width: 700px) {

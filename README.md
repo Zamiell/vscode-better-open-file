@@ -47,6 +47,7 @@ The aim is to be in the [Goldilocks zone](https://en.wikipedia.org/wiki/Goldiloc
   - Refresh (F5)
   - Open (Enter)
   - Cancel (Escape)
+- You can also delete files or directories with the delete key.
 
 ## Development
 
@@ -59,4 +60,4 @@ bun run build # To convert the TypeScript to JavaScript
 code . # Open Visual Studio Code to this directory
 ```
 
-In VS Code, use the `Run Extension` launch configuration.
+In Visual Studio Code, use the `Run Extension` launch configuration.
