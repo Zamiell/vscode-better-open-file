@@ -47,7 +47,7 @@ The aim is to be in the [Goldilocks zone](https://en.wikipedia.org/wiki/Goldiloc
   - Refresh (F5)
   - Open (Enter)
   - Cancel (Escape)
-- You can also delete files or directories with the delete key.
+- You can delete files or directories with the delete key. (A confirmation dialog will appear.)
 
 ## Development
 
