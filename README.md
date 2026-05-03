@@ -47,8 +47,9 @@ The aim is to be in the [Goldilocks zone](https://en.wikipedia.org/wiki/Goldiloc
   - Refresh (F5)
   - Open (Enter)
   - Cancel (Escape)
-- You can delete files or directories with the delete key. (A confirmation dialog will appear.)
 - You can create a new directory with either the "New Directory" button at the top or the "Ctrl + Shift + N" hotkey.
+- You can delete files or directories with the delete key. (A confirmation dialog will appear.)
+- You can rename the currently selected file or directory with the F2 key.
 
 ## Development
 

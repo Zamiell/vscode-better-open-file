@@ -245,6 +245,13 @@ select {
   text-overflow: ellipsis;
 }
 
+.rename-input {
+  flex: 1 1 auto;
+  min-width: 80px;
+  padding: 0 4px;
+  user-select: text;
+}
+
 .file-icon {
   display: inline-block;
   flex: 0 0 auto;

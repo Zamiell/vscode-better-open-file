@@ -25,6 +25,12 @@ type WebviewMessage =
       readonly type: "openSelection";
     }
   | {
+      readonly currentDirectory: string;
+      readonly newName: string;
+      readonly path: string;
+      readonly type: "renameSelection";
+    }
+  | {
       readonly type: "ready";
     };
 
@@ -53,6 +59,16 @@ export async function handleMessage(
 
     case "openSelection": {
       await openSelection(panel, message.paths);
+      break;
+    }
+
+    case "renameSelection": {
+      await renameSelection(
+        panel,
+        message.currentDirectory,
+        message.path,
+        message.newName,
+      );
       break;
     }
 
@@ -165,6 +181,43 @@ async function createDirectory(
   }
 }
 
+async function renameSelection(
+  panel: vscode.WebviewPanel,
+  currentDirectory: string,
+  selectedPath: string,
+  newName: string,
+) {
+  try {
+    const absoluteDirectory = path.resolve(currentDirectory);
+    const absoluteSelectedPath = path.resolve(selectedPath);
+    if (!isDirectChildPath(absoluteDirectory, absoluteSelectedPath)) {
+      await postError(panel, "Select an item in the current directory.");
+      return;
+    }
+
+    if (!isValidFileName(newName)) {
+      await postError(panel, "Enter a valid name without path separators.");
+      return;
+    }
+
+    const renamedPath = path.join(absoluteDirectory, newName);
+    if (renamedPath === absoluteSelectedPath) {
+      await sendDirectoryListing(
+        panel,
+        absoluteDirectory,
+        absoluteSelectedPath,
+      );
+      return;
+    }
+
+    await assertRenameTargetIsAvailable(absoluteSelectedPath, renamedPath);
+    await fs.rename(absoluteSelectedPath, renamedPath);
+    await sendDirectoryListing(panel, absoluteDirectory, renamedPath);
+  } catch (error) {
+    await postError(panel, getErrorMessage(error));
+  }
+}
+
 async function deleteSelection(
   panel: vscode.WebviewPanel,
   currentDirectory: string,
@@ -266,6 +319,21 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
       );
     }
 
+    case "renameSelection": {
+      const { currentDirectory, newName, path: selectedPath } = rawMessage;
+
+      return typeof currentDirectory === "string"
+        && typeof newName === "string"
+        && typeof selectedPath === "string"
+        ? {
+            currentDirectory,
+            newName,
+            path: selectedPath,
+            type: "renameSelection",
+          }
+        : undefined;
+    }
+
     case "deleteSelection": {
       const { currentDirectory, paths } = rawMessage;
 
@@ -285,6 +353,61 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isDirectChildPath(parentPath: string, childPath: string): boolean {
+  const relativePath = path.relative(parentPath, childPath);
+  return (
+    relativePath !== ""
+    && !relativePath.startsWith("..")
+    && !path.isAbsolute(relativePath)
+    && !relativePath.includes(path.sep)
+  );
+}
+
+function isValidFileName(name: string): boolean {
+  return (
+    name.trim() !== ""
+    && name !== "."
+    && name !== ".."
+    && !name.includes("/")
+    && !name.includes("\\")
+  );
+}
+
+async function assertRenameTargetIsAvailable(
+  sourcePath: string,
+  targetPath: string,
+) {
+  if (!(await pathExists(targetPath))) {
+    return;
+  }
+
+  const [sourceStats, targetStats] = await Promise.all([
+    fs.lstat(sourcePath),
+    fs.lstat(targetPath),
+  ]);
+  if (
+    sourceStats.dev === targetStats.dev
+    && sourceStats.ino === targetStats.ino
+  ) {
+    return;
+  }
+
+  throw new Error(`"${path.basename(targetPath)}" already exists.`);
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.stat(filePath);
+    return true;
+  } catch (error) {
+    if (hasErrorCode(error, "ENOENT")) {
+      return false;
+    }
+
+    throw error;
+  }
 }
 
 async function createUniqueDirectory(parentPath: string): Promise<string> {

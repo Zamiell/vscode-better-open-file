@@ -50,6 +50,12 @@ type WebviewToHostMessage =
       readonly type: "openSelection";
     }
   | {
+      readonly currentDirectory: string;
+      readonly newName: string;
+      readonly path: string;
+      readonly type: "renameSelection";
+    }
+  | {
       readonly type: "cancel" | "ready";
     };
 
@@ -66,6 +72,7 @@ interface DialogState {
         readonly entryPath: string;
       }
     | undefined;
+  renamingPath: string | undefined;
   selectedPaths: Set<string>;
 }
 
@@ -79,6 +86,7 @@ const state: DialogState = {
   historyStack: [],
   parentPath: undefined,
   pendingSelectedPath: undefined,
+  renamingPath: undefined,
   selectedPaths: new Set<string>(),
 };
 
@@ -114,6 +122,7 @@ globalThis.addEventListener(
     }
 
     if (message.type === "directoryListing") {
+      state.renamingPath = undefined;
       setDirectoryListing(message.listing, message.selectedPath);
       return;
     }
@@ -174,6 +183,10 @@ function registerEventHandlers() {
   document.addEventListener(
     "keydown",
     (event) => {
+      if (isRenameInputTarget(event.target)) {
+        return;
+      }
+
       if (event.altKey && event.key === "ArrowUp") {
         event.preventDefault();
         event.stopPropagation();
@@ -361,7 +374,11 @@ function createFileRow(entry: FileEntry) {
   const nameText = document.createElement("span");
   nameText.className = "file-name-text";
   nameText.textContent = entry.name;
-  name.append(nameText);
+  if (state.renamingPath === entry.path) {
+    name.append(createRenameInput(entry));
+  } else {
+    name.append(nameText);
+  }
 
   row.append(name);
 
@@ -465,6 +482,11 @@ function selectEntryByPath(entryPath: string, focusSelectedEntry: boolean) {
   return true;
 }
 
+function getSelectedEntry(): FileEntry | undefined {
+  const selectedPath = [...state.selectedPaths].at(-1);
+  return state.entries.find((entry) => entry.path === selectedPath);
+}
+
 function getPendingSelectedPath(directoryPath: string): string | undefined {
   const { pendingSelectedPath } = state;
   state.pendingSelectedPath = undefined;
@@ -531,6 +553,131 @@ function updateRenderedSelection() {
 
 function updateOpenButton() {
   elements.openButton.disabled = state.selectedPaths.size === 0;
+}
+
+function beginRenameSelection() {
+  if (state.selectedPaths.size !== 1) {
+    showError("Select one item to rename.");
+    return;
+  }
+
+  const selectedEntry = getSelectedEntry();
+  if (selectedEntry === undefined) {
+    showError("Select one item to rename.");
+    return;
+  }
+
+  state.renamingPath = selectedEntry.path;
+  renderFileList();
+  updateRenderedSelection();
+
+  const renameInput = getRenameInput(selectedEntry.path);
+  if (renameInput === undefined) {
+    return;
+  }
+
+  renameInput.focus();
+  renameInput.setSelectionRange(0, getRenameSelectionEnd(selectedEntry));
+}
+
+function createRenameInput(entry: FileEntry): HTMLInputElement {
+  const renameInput = document.createElement("input");
+  renameInput.className = "rename-input";
+  renameInput.value = entry.name;
+  renameInput.ariaLabel = `Rename ${entry.name}`;
+
+  renameInput.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  renameInput.addEventListener("dblclick", (event) => {
+    event.stopPropagation();
+  });
+  renameInput.addEventListener("keydown", (event) => {
+    event.stopPropagation();
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commitRename(entry, renameInput.value);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      cancelRename(entry.path);
+    }
+  });
+  renameInput.addEventListener("blur", () => {
+    commitRename(entry, renameInput.value);
+  });
+
+  return renameInput;
+}
+
+function commitRename(entry: FileEntry, newName: string) {
+  if (state.renamingPath !== entry.path) {
+    return;
+  }
+
+  if (newName === entry.name) {
+    cancelRename(entry.path);
+    return;
+  }
+
+  if (!isValidRenameName(newName)) {
+    showError("Enter a valid name without path separators.");
+    return;
+  }
+
+  state.renamingPath = undefined;
+  renderFileList();
+  selectEntryByPath(entry.path, true);
+
+  vscode.postMessage({
+    currentDirectory: state.currentPath,
+    newName,
+    path: entry.path,
+    type: "renameSelection",
+  });
+}
+
+function cancelRename(entryPath: string) {
+  if (state.renamingPath !== entryPath) {
+    return;
+  }
+
+  state.renamingPath = undefined;
+  renderFileList();
+  selectEntryByPath(entryPath, true);
+}
+
+function isValidRenameName(name: string): boolean {
+  return (
+    name.trim() !== ""
+    && name !== "."
+    && name !== ".."
+    && !name.includes("/")
+    && !name.includes("\\")
+  );
+}
+
+function getRenameSelectionEnd(entry: FileEntry): number {
+  if (entry.isDirectory) {
+    return entry.name.length;
+  }
+
+  const extensionIndex = entry.name.lastIndexOf(".");
+  return extensionIndex > 0 ? extensionIndex : entry.name.length;
+}
+
+function getRenameInput(entryPath: string): HTMLInputElement | undefined {
+  return (
+    getEntryElement(entryPath)?.querySelector<HTMLInputElement>(".rename-input")
+    ?? undefined
+  );
+}
+
+function isRenameInputTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(".rename-input") !== null;
 }
 
 function openSelection() {
@@ -606,6 +753,12 @@ function getPathToSelectAfterDelete(
 
 function handleFileListKeydown(event: KeyboardEvent) {
   if (handleFileListFilterKeydown(event)) {
+    return;
+  }
+
+  if (event.key === "F2") {
+    event.preventDefault();
+    beginRenameSelection();
     return;
   }
 
