@@ -23,6 +23,7 @@ type HostToWebviewMessage =
     }
   | {
       readonly listing: DirectoryListing;
+      readonly selectedPath?: string;
       readonly type: "directoryListing";
     }
   | {
@@ -31,6 +32,10 @@ type HostToWebviewMessage =
     };
 
 type WebviewToHostMessage =
+  | {
+      readonly currentDirectory: string;
+      readonly type: "createDirectory";
+    }
   | {
       readonly currentDirectory: string;
       readonly paths: readonly string[];
@@ -87,6 +92,7 @@ const elements = {
   fileNameInput: getElement("fileNameInput", HTMLInputElement),
   forwardButton: getElement("forwardButton", HTMLButtonElement),
   itemCount: getElement("itemCount", HTMLDivElement),
+  newDirectoryButton: getElement("newDirectoryButton", HTMLButtonElement),
   openButton: getElement("openButton", HTMLButtonElement),
   refreshButton: getElement("refreshButton", HTMLButtonElement),
   upButton: getElement("upButton", HTMLButtonElement),
@@ -108,7 +114,7 @@ globalThis.addEventListener(
     }
 
     if (message.type === "directoryListing") {
-      setDirectoryListing(message.listing);
+      setDirectoryListing(message.listing, message.selectedPath);
       return;
     }
 
@@ -144,6 +150,8 @@ function registerEventHandlers() {
   });
 
   elements.refreshButton.addEventListener("click", refreshDirectory);
+
+  elements.newDirectoryButton.addEventListener("click", createDirectory);
 
   elements.upButton.addEventListener("click", navigateUp);
 
@@ -187,6 +195,13 @@ function registerEventHandlers() {
         return;
       }
 
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        event.stopPropagation();
+        createDirectory();
+        return;
+      }
+
       if (event.key === "F5") {
         event.preventDefault();
         event.stopPropagation();
@@ -218,8 +233,9 @@ function registerEventHandlers() {
   );
 }
 
-function setDirectoryListing(listing: DirectoryListing) {
-  const pendingSelectedPath = getPendingSelectedPath(listing.path);
+function setDirectoryListing(listing: DirectoryListing, selectedPath?: string) {
+  const pendingSelectedPath =
+    selectedPath ?? getPendingSelectedPath(listing.path);
   state.currentPath = listing.path;
   state.entries = listing.entries;
   state.parentPath = listing.parentPath;
@@ -281,6 +297,20 @@ function requestDirectory(directoryPath: string, selectedPath?: string) {
 function refreshDirectory() {
   state.pendingSelectedPath = undefined;
   vscode.postMessage({ path: state.currentPath, type: "listDirectory" });
+}
+
+function createDirectory() {
+  if (state.currentPath === "") {
+    showError(
+      "You must be in a valid directory before creating a new directory.",
+    );
+    return;
+  }
+
+  vscode.postMessage({
+    currentDirectory: state.currentPath,
+    type: "createDirectory",
+  });
 }
 
 function renderFileList() {

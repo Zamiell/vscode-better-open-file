@@ -9,6 +9,10 @@ type WebviewMessage =
     }
   | {
       readonly currentDirectory: string;
+      readonly type: "createDirectory";
+    }
+  | {
+      readonly currentDirectory: string;
       readonly paths: readonly string[];
       readonly type: "deleteSelection";
     }
@@ -49,6 +53,11 @@ export async function handleMessage(
 
     case "openSelection": {
       await openSelection(panel, message.paths);
+      break;
+    }
+
+    case "createDirectory": {
+      await createDirectory(panel, message.currentDirectory);
       break;
     }
 
@@ -110,7 +119,10 @@ async function openSelection(
       return;
     }
 
-    await postError(panel, "Folders cannot be opened with files.");
+    await postError(
+      panel,
+      "Directories and files cannot be opened at the same.",
+    );
     return;
   }
 
@@ -132,6 +144,25 @@ async function openSelection(
         }),
     ),
   );
+}
+
+async function createDirectory(
+  panel: vscode.WebviewPanel,
+  currentDirectory: string,
+) {
+  try {
+    const absoluteDirectory = path.resolve(currentDirectory);
+    const stat = await fs.stat(absoluteDirectory);
+    if (!stat.isDirectory()) {
+      await postError(panel, `${absoluteDirectory} is not a directory.`);
+      return;
+    }
+
+    const newDirectoryPath = await createUniqueDirectory(absoluteDirectory);
+    await sendDirectoryListing(panel, absoluteDirectory, newDirectoryPath);
+  } catch (error) {
+    await postError(panel, getErrorMessage(error));
+  }
 }
 
 async function deleteSelection(
@@ -182,11 +213,13 @@ async function deleteSelection(
 async function sendDirectoryListing(
   panel: vscode.WebviewPanel,
   requestedPath: string,
+  selectedPath?: string,
 ) {
   try {
     const listing = await listDirectory(requestedPath);
     await panel.webview.postMessage({
       listing,
+      selectedPath,
       type: "directoryListing",
     });
   } catch (error) {
@@ -203,6 +236,14 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
     case "cancel":
     case "ready": {
       return { type: rawMessage["type"] };
+    }
+
+    case "createDirectory": {
+      const { currentDirectory } = rawMessage;
+
+      return typeof currentDirectory === "string"
+        ? { currentDirectory, type: "createDirectory" }
+        : undefined;
     }
 
     case "listDirectory":
@@ -244,6 +285,40 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+async function createUniqueDirectory(parentPath: string): Promise<string> {
+  const directoryEntries = await fs.readdir(parentPath);
+  const existingNames = new Set(
+    directoryEntries.map((directoryEntry) => directoryEntry.toLowerCase()),
+  );
+  const directoryName = getAvailableDirectoryName(existingNames);
+  const directoryPath = path.join(parentPath, directoryName);
+
+  try {
+    await fs.mkdir(directoryPath);
+    return directoryPath;
+  } catch (error) {
+    if (hasErrorCode(error, "EEXIST")) {
+      return await createUniqueDirectory(parentPath);
+    }
+
+    throw error;
+  }
+}
+
+function getAvailableDirectoryName(existingNames: ReadonlySet<string>): string {
+  for (let index = 1; ; index++) {
+    // "New folder" is what Windows calls new directories by default, so we match this convention.
+    const directoryName = index === 1 ? "New folder" : `New folder (${index})`;
+    if (!existingNames.has(directoryName.toLowerCase())) {
+      return directoryName;
+    }
+  }
+}
+
+function hasErrorCode(error: unknown, code: string): boolean {
+  return error instanceof Error && "code" in error && error.code === code;
 }
 
 function getErrorMessage(error: unknown): string {

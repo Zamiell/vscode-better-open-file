@@ -48,7 +48,14 @@ export function getWebviewHtml(
             <path d="M13 2.5v3h-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"/>
           </svg>
         </button>
-        <input id="addressInput" class="address" aria-label="Folder path">
+        <button id="newDirectoryButton" class="icon-button" type="button" title="New Directory (Ctrl+Shift+N)" aria-label="New Directory">
+          <svg class="new-directory-icon" aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+            <path d="M3.5 6.5a2 2 0 0 1 2-2h5l2.5 2.5h5.5a2 2 0 0 1 2 2v5.5H3.5z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.8"/>
+            <circle cx="17" cy="16.5" r="5" fill="var(--vscode-button-secondaryBackground)" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M17 13.8v5.4M14.3 16.5h5.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"/>
+          </svg>
+        </button>
+        <input id="addressInput" class="address" aria-label="Directory path">
       </header>
 
       <section class="body">
@@ -62,7 +69,7 @@ export function getWebviewHtml(
             id="fileList"
             class="file-list"
             role="listbox"
-            aria-label="Files and folders"
+            aria-label="Files and directories"
             tabindex="0"
           ></div>
         </section>
