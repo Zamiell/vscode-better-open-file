@@ -175,14 +175,8 @@ function registerEventHandlers() {
   elements.refreshButton.addEventListener("click", refreshDirectory);
 
   elements.newDirectoryButton.addEventListener("click", createDirectory);
-  elements.contextNewDirectoryButton.addEventListener("click", () => {
-    hideContextMenu();
-    createDirectory();
-  });
-  elements.contextNewFileButton.addEventListener("click", () => {
-    hideContextMenu();
-    createFile();
-  });
+  registerContextMenuItem(elements.contextNewDirectoryButton, createDirectory);
+  registerContextMenuItem(elements.contextNewFileButton, createFile);
 
   elements.upButton.addEventListener("click", navigateUp);
 
@@ -299,6 +293,19 @@ function registerEventHandlers() {
     { capture: true },
   );
   globalThis.addEventListener("resize", hideContextMenu);
+}
+
+function registerContextMenuItem(
+  menuItem: HTMLButtonElement,
+  action: () => void,
+) {
+  menuItem.addEventListener("click", () => {
+    hideContextMenu();
+    action();
+  });
+  menuItem.addEventListener("pointerenter", () => {
+    menuItem.focus();
+  });
 }
 
 function setDirectoryListing(
