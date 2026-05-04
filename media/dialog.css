@@ -366,6 +366,10 @@ select {
   width: 100%;
 }
 
+.context-menu-item[hidden] {
+  display: none;
+}
+
 .context-menu-item:hover,
 .context-menu-item:focus {
   background: var(

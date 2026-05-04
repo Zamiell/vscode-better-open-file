@@ -84,6 +84,7 @@ export function getWebviewHtml(
       <div id="errorStatus" class="error-status" role="alert" hidden></div>
 
       <div id="contextMenu" class="context-menu" role="menu" aria-label="File list actions" hidden>
+        <button id="contextRenameButton" class="context-menu-item" type="button" role="menuitem" hidden>Rename</button>
         <button id="contextNewFileButton" class="context-menu-item" type="button" role="menuitem">New File</button>
         <button id="contextNewDirectoryButton" class="context-menu-item" type="button" role="menuitem">New Directory</button>
       </div>

@@ -105,6 +105,7 @@ const elements = {
     HTMLButtonElement,
   ),
   contextNewFileButton: getElement("contextNewFileButton", HTMLButtonElement),
+  contextRenameButton: getElement("contextRenameButton", HTMLButtonElement),
   clearFilterButton: getElement("clearFilterButton", HTMLButtonElement),
   errorStatus: getElement("errorStatus", HTMLDivElement),
   fileList: getElement("fileList", HTMLDivElement),
@@ -179,6 +180,7 @@ function registerEventHandlers() {
   elements.newDirectoryButton.addEventListener("click", createDirectory);
   registerContextMenuItem(elements.contextNewDirectoryButton, createDirectory);
   registerContextMenuItem(elements.contextNewFileButton, createFile);
+  registerContextMenuItem(elements.contextRenameButton, beginRenameSelection);
 
   elements.upButton.addEventListener("click", navigateUp);
 
@@ -208,7 +210,7 @@ function registerEventHandlers() {
 
       event.preventDefault();
       event.stopPropagation();
-      showContextMenu(event.clientX, event.clientY);
+      showContextMenu(event.clientX, event.clientY, event.target);
     },
     { capture: true },
   );
@@ -412,7 +414,18 @@ function createFile() {
   });
 }
 
-function showContextMenu(clientX: number, clientY: number) {
+function showContextMenu(
+  clientX: number,
+  clientY: number,
+  target: EventTarget | null,
+) {
+  const contextEntry = getContextMenuEntry(target);
+  elements.contextRenameButton.hidden = contextEntry === undefined;
+  if (contextEntry !== undefined) {
+    selectEntry(contextEntry, false, false);
+    focusEntry(contextEntry.path);
+  }
+
   elements.contextMenu.hidden = false;
   elements.contextMenu.style.left = "0";
   elements.contextMenu.style.top = "0";
@@ -425,11 +438,19 @@ function showContextMenu(clientX: number, clientY: number) {
 
   elements.contextMenu.style.left = `${left}px`;
   elements.contextMenu.style.top = `${top}px`;
-  elements.contextNewFileButton.focus();
+  getFirstVisibleContextMenuItem().focus();
 }
 
 function hideContextMenu() {
   elements.contextMenu.hidden = true;
+}
+
+function getFirstVisibleContextMenuItem(): HTMLButtonElement {
+  return (
+    [
+      ...elements.contextMenu.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.hidden === false) ?? elements.contextNewFileButton
+  );
 }
 
 function renderFileList() {
@@ -617,6 +638,26 @@ function isFileRowClick(target: EventTarget | null): boolean {
     && target.closest(".file-row") !== null
     && elements.fileList.contains(target)
   );
+}
+
+function getContextMenuEntry(
+  target: EventTarget | null,
+): FileEntry | undefined {
+  if (!(target instanceof Element)) {
+    return undefined;
+  }
+
+  const row = target.closest<HTMLElement>(".file-row");
+  const rowPath = row?.dataset["path"];
+  if (
+    row === null
+    || rowPath === undefined
+    || !elements.fileList.contains(row)
+  ) {
+    return undefined;
+  }
+
+  return state.entries.find((entry) => entry.path === rowPath);
 }
 
 function isContextMenuTarget(target: EventTarget | null): boolean {
