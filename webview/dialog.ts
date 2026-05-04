@@ -23,6 +23,7 @@ type HostToWebviewMessage =
     }
   | {
       readonly listing: DirectoryListing;
+      readonly renamePath?: string;
       readonly selectedPath?: string;
       readonly type: "directoryListing";
     }
@@ -122,8 +123,11 @@ globalThis.addEventListener(
     }
 
     if (message.type === "directoryListing") {
-      state.renamingPath = undefined;
-      setDirectoryListing(message.listing, message.selectedPath);
+      setDirectoryListing(
+        message.listing,
+        message.selectedPath,
+        message.renamePath,
+      );
       return;
     }
 
@@ -246,12 +250,17 @@ function registerEventHandlers() {
   );
 }
 
-function setDirectoryListing(listing: DirectoryListing, selectedPath?: string) {
+function setDirectoryListing(
+  listing: DirectoryListing,
+  selectedPath?: string,
+  renamePath?: string,
+) {
   const pendingSelectedPath =
     selectedPath ?? getPendingSelectedPath(listing.path);
   state.currentPath = listing.path;
   state.entries = listing.entries;
   state.parentPath = listing.parentPath;
+  state.renamingPath = renamePath;
   state.selectedPaths.clear();
   elements.addressInput.value = listing.path;
   elements.fileNameInput.value = "";
@@ -265,6 +274,7 @@ function setDirectoryListing(listing: DirectoryListing, selectedPath?: string) {
   }
   updateNavigationButtons();
   hideError();
+  focusRenameInput(renamePath);
 }
 
 function navigateTo(directoryPath: string) {
@@ -571,13 +581,7 @@ function beginRenameSelection() {
   renderFileList();
   updateRenderedSelection();
 
-  const renameInput = getRenameInput(selectedEntry.path);
-  if (renameInput === undefined) {
-    return;
-  }
-
-  renameInput.focus();
-  renameInput.setSelectionRange(0, getRenameSelectionEnd(selectedEntry));
+  focusRenameInput(selectedEntry.path);
 }
 
 function createRenameInput(entry: FileEntry): HTMLInputElement {
@@ -674,6 +678,21 @@ function getRenameInput(entryPath: string): HTMLInputElement | undefined {
     getEntryElement(entryPath)?.querySelector<HTMLInputElement>(".rename-input")
     ?? undefined
   );
+}
+
+function focusRenameInput(entryPath: string | undefined) {
+  if (entryPath === undefined) {
+    return;
+  }
+
+  const renameInput = getRenameInput(entryPath);
+  const renamingEntry = state.entries.find((entry) => entry.path === entryPath);
+  if (renameInput === undefined || renamingEntry === undefined) {
+    return;
+  }
+
+  renameInput.focus();
+  renameInput.setSelectionRange(0, getRenameSelectionEnd(renamingEntry));
 }
 
 function isRenameInputTarget(target: EventTarget | null): boolean {

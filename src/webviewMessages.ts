@@ -175,7 +175,12 @@ async function createDirectory(
     }
 
     const newDirectoryPath = await createUniqueDirectory(absoluteDirectory);
-    await sendDirectoryListing(panel, absoluteDirectory, newDirectoryPath);
+    await sendDirectoryListing(
+      panel,
+      absoluteDirectory,
+      newDirectoryPath,
+      newDirectoryPath,
+    );
   } catch (error) {
     await postError(panel, getErrorMessage(error));
   }
@@ -267,11 +272,13 @@ async function sendDirectoryListing(
   panel: vscode.WebviewPanel,
   requestedPath: string,
   selectedPath?: string,
+  renamePath?: string,
 ) {
   try {
     const listing = await listDirectory(requestedPath);
     await panel.webview.postMessage({
       listing,
+      renamePath,
       selectedPath,
       type: "directoryListing",
     });
