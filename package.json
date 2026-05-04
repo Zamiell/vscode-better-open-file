@@ -23,7 +23,7 @@
   },
   "license": "MIT",
   "author": "Zamiell",
-  "publisher": "Zamiell",
+  "publisher": "Zamiel",
   "type": "module",
   "main": "./dist/extension.js",
   "files": [
@@ -35,7 +35,7 @@
     "build": "bun run ./scripts/build.ts",
     "lint": "bun run ./scripts/lint.ts",
     "package": "bun run build && vsce package",
-    "publish": "vsce publish",
+    "publish": "bun run build && vsce publish",
     "update": "complete-cli update"
   },
   "contributes": {
