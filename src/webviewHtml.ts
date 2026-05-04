@@ -48,6 +48,12 @@ export function getWebviewHtml(
             <path d="M13 2.5v3h-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4"/>
           </svg>
         </button>
+        <button id="newFileButton" class="icon-button" type="button" title="New File" aria-label="New File">
+          <svg class="new-file-icon" aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+            <path d="M6.5 3.5h7l4 4v13h-11z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.8"/>
+            <path d="M13.5 3.5v4h4M12 11.8v5.4M9.3 14.5h5.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/>
+          </svg>
+        </button>
         <button id="newDirectoryButton" class="icon-button" type="button" title="New Directory (Ctrl+Shift+N)" aria-label="New Directory">
           <svg class="new-directory-icon" aria-hidden="true" viewBox="0 0 24 24" focusable="false">
             <path d="M3.5 6.5a2 2 0 0 1 2-2h5l2.5 2.5h5.5a2 2 0 0 1 2 2v5.5H3.5z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.8"/>

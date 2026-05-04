@@ -119,6 +119,12 @@ button.primary:focus {
   width: 16px;
 }
 
+.new-file-icon {
+  display: block;
+  height: 22px;
+  width: 22px;
+}
+
 .new-directory-icon {
   display: block;
   height: 22px;
@@ -157,7 +163,7 @@ select {
 }
 
 .toolbar {
-  grid-template-columns: auto auto auto auto auto 1fr;
+  grid-template-columns: auto auto auto auto auto auto 1fr;
 }
 
 .address {

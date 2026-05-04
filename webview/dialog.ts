@@ -111,6 +111,7 @@ const elements = {
   fileNameInput: getElement("fileNameInput", HTMLInputElement),
   forwardButton: getElement("forwardButton", HTMLButtonElement),
   itemCount: getElement("itemCount", HTMLDivElement),
+  newFileButton: getElement("newFileButton", HTMLButtonElement),
   newDirectoryButton: getElement("newDirectoryButton", HTMLButtonElement),
   openButton: getElement("openButton", HTMLButtonElement),
   refreshButton: getElement("refreshButton", HTMLButtonElement),
@@ -174,6 +175,7 @@ function registerEventHandlers() {
 
   elements.refreshButton.addEventListener("click", refreshDirectory);
 
+  elements.newFileButton.addEventListener("click", createFile);
   elements.newDirectoryButton.addEventListener("click", createDirectory);
   registerContextMenuItem(elements.contextNewDirectoryButton, createDirectory);
   registerContextMenuItem(elements.contextNewFileButton, createFile);
