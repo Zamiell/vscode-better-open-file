@@ -334,6 +334,42 @@ select {
   display: none;
 }
 
+.context-menu {
+  background: var(--vscode-menu-background, var(--vscode-dropdown-background));
+  border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 35%);
+  color: var(--vscode-menu-foreground, var(--vscode-foreground));
+  min-width: 160px;
+  padding: 4px 0;
+  position: fixed;
+  z-index: 10;
+}
+
+.context-menu[hidden] {
+  display: none;
+}
+
+.context-menu-item {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  display: block;
+  padding: 4px 24px;
+  text-align: left;
+  width: 100%;
+}
+
+.context-menu-item:hover,
+.context-menu-item:focus {
+  background: var(
+    --vscode-menu-selectionBackground,
+    var(--vscode-list-hoverBackground)
+  );
+  color: var(--vscode-menu-selectionForeground, inherit);
+  outline: none;
+}
+
 .item-count {
   color: var(--vscode-descriptionForeground);
   min-width: 72px;

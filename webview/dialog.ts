@@ -35,6 +35,10 @@ type HostToWebviewMessage =
 type WebviewToHostMessage =
   | {
       readonly currentDirectory: string;
+      readonly type: "createFile";
+    }
+  | {
+      readonly currentDirectory: string;
       readonly type: "createDirectory";
     }
   | {
@@ -95,6 +99,12 @@ const elements = {
   addressInput: getElement("addressInput", HTMLInputElement),
   backButton: getElement("backButton", HTMLButtonElement),
   cancelButton: getElement("cancelButton", HTMLButtonElement),
+  contextMenu: getElement("contextMenu", HTMLDivElement),
+  contextNewDirectoryButton: getElement(
+    "contextNewDirectoryButton",
+    HTMLButtonElement,
+  ),
+  contextNewFileButton: getElement("contextNewFileButton", HTMLButtonElement),
   clearFilterButton: getElement("clearFilterButton", HTMLButtonElement),
   errorStatus: getElement("errorStatus", HTMLDivElement),
   fileList: getElement("fileList", HTMLDivElement),
@@ -165,6 +175,14 @@ function registerEventHandlers() {
   elements.refreshButton.addEventListener("click", refreshDirectory);
 
   elements.newDirectoryButton.addEventListener("click", createDirectory);
+  elements.contextNewDirectoryButton.addEventListener("click", () => {
+    hideContextMenu();
+    createDirectory();
+  });
+  elements.contextNewFileButton.addEventListener("click", () => {
+    hideContextMenu();
+    createFile();
+  });
 
   elements.upButton.addEventListener("click", navigateUp);
 
@@ -183,11 +201,43 @@ function registerEventHandlers() {
     clearSelection();
     elements.fileList.focus();
   });
+  elements.fileList.addEventListener("scroll", hideContextMenu);
+
+  document.addEventListener(
+    "contextmenu",
+    (event) => {
+      if (isNativeContextMenuTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      showContextMenu(event.clientX, event.clientY);
+    },
+    { capture: true },
+  );
+
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (!isContextMenuTarget(event.target)) {
+        hideContextMenu();
+      }
+    },
+    { capture: true },
+  );
 
   document.addEventListener(
     "keydown",
     (event) => {
       if (isRenameInputTarget(event.target)) {
+        return;
+      }
+
+      if (event.key === "Escape" && elements.contextMenu.hidden === false) {
+        event.preventDefault();
+        event.stopPropagation();
+        hideContextMenu();
         return;
       }
 
@@ -248,6 +298,7 @@ function registerEventHandlers() {
     },
     { capture: true },
   );
+  globalThis.addEventListener("resize", hideContextMenu);
 }
 
 function setDirectoryListing(
@@ -323,6 +374,8 @@ function refreshDirectory() {
 }
 
 function createDirectory() {
+  hideContextMenu();
+
   if (state.currentPath === "") {
     showError(
       "You must be in a valid directory before creating a new directory.",
@@ -334,6 +387,40 @@ function createDirectory() {
     currentDirectory: state.currentPath,
     type: "createDirectory",
   });
+}
+
+function createFile() {
+  hideContextMenu();
+
+  if (state.currentPath === "") {
+    showError("You must be in a valid directory before creating a new file.");
+    return;
+  }
+
+  vscode.postMessage({
+    currentDirectory: state.currentPath,
+    type: "createFile",
+  });
+}
+
+function showContextMenu(clientX: number, clientY: number) {
+  elements.contextMenu.hidden = false;
+  elements.contextMenu.style.left = "0";
+  elements.contextMenu.style.top = "0";
+
+  const menuRect = elements.contextMenu.getBoundingClientRect();
+  const maxLeft = Math.max(0, globalThis.innerWidth - menuRect.width - 4);
+  const maxTop = Math.max(0, globalThis.innerHeight - menuRect.height - 4);
+  const left = Math.min(clientX, maxLeft);
+  const top = Math.min(clientY, maxTop);
+
+  elements.contextMenu.style.left = `${left}px`;
+  elements.contextMenu.style.top = `${top}px`;
+  elements.contextNewFileButton.focus();
+}
+
+function hideContextMenu() {
+  elements.contextMenu.hidden = true;
 }
 
 function renderFileList() {
@@ -520,6 +607,20 @@ function isFileRowClick(target: EventTarget | null): boolean {
     target instanceof Element
     && target.closest(".file-row") !== null
     && elements.fileList.contains(target)
+  );
+}
+
+function isContextMenuTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element
+    && target.closest(".context-menu") === elements.contextMenu
+  );
+}
+
+function isNativeContextMenuTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element
+    && target.closest("input, textarea, select") !== null
   );
 }
 

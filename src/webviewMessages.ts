@@ -9,6 +9,10 @@ type WebviewMessage =
     }
   | {
       readonly currentDirectory: string;
+      readonly type: "createFile";
+    }
+  | {
+      readonly currentDirectory: string;
       readonly type: "createDirectory";
     }
   | {
@@ -74,6 +78,11 @@ export async function handleMessage(
 
     case "createDirectory": {
       await createDirectory(panel, message.currentDirectory);
+      break;
+    }
+
+    case "createFile": {
+      await createFile(panel, message.currentDirectory);
       break;
     }
 
@@ -180,6 +189,30 @@ async function createDirectory(
       absoluteDirectory,
       newDirectoryPath,
       newDirectoryPath,
+    );
+  } catch (error) {
+    await postError(panel, getErrorMessage(error));
+  }
+}
+
+async function createFile(
+  panel: vscode.WebviewPanel,
+  currentDirectory: string,
+) {
+  try {
+    const absoluteDirectory = path.resolve(currentDirectory);
+    const stat = await fs.stat(absoluteDirectory);
+    if (!stat.isDirectory()) {
+      await postError(panel, `${absoluteDirectory} is not a directory.`);
+      return;
+    }
+
+    const newFilePath = await createUniqueTextDocument(absoluteDirectory);
+    await sendDirectoryListing(
+      panel,
+      absoluteDirectory,
+      newFilePath,
+      newFilePath,
     );
   } catch (error) {
     await postError(panel, getErrorMessage(error));
@@ -298,11 +331,12 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
       return { type: rawMessage["type"] };
     }
 
-    case "createDirectory": {
+    case "createDirectory":
+    case "createFile": {
       const { currentDirectory } = rawMessage;
 
       return typeof currentDirectory === "string"
-        ? { currentDirectory, type: "createDirectory" }
+        ? { currentDirectory, type: rawMessage["type"] }
         : undefined;
     }
 
@@ -443,6 +477,40 @@ function getAvailableDirectoryName(existingNames: ReadonlySet<string>): string {
     const directoryName = index === 1 ? "New folder" : `New folder (${index})`;
     if (!existingNames.has(directoryName.toLowerCase())) {
       return directoryName;
+    }
+  }
+}
+
+async function createUniqueTextDocument(parentPath: string): Promise<string> {
+  const directoryEntries = await fs.readdir(parentPath);
+  const existingNames = new Set(
+    directoryEntries.map((directoryEntry) => directoryEntry.toLowerCase()),
+  );
+  const fileName = getAvailableTextDocumentName(existingNames);
+  const filePath = path.join(parentPath, fileName);
+
+  try {
+    await fs.writeFile(filePath, "", { flag: "wx" });
+    return filePath;
+  } catch (error) {
+    if (hasErrorCode(error, "EEXIST")) {
+      return await createUniqueTextDocument(parentPath);
+    }
+
+    throw error;
+  }
+}
+
+function getAvailableTextDocumentName(
+  existingNames: ReadonlySet<string>,
+): string {
+  for (let index = 1; ; index++) {
+    const fileName =
+      index === 1
+        ? "New Text Document.txt"
+        : `New Text Document (${index}).txt`;
+    if (!existingNames.has(fileName.toLowerCase())) {
+      return fileName;
     }
   }
 }
