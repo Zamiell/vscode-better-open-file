@@ -361,13 +361,10 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
     case "openSelection": {
       const { paths } = rawMessage;
 
-      return (
-        // eslint-disable-next-line complete/prefer-is-array
-        Array.isArray(paths)
-          && paths.every((selectedPath) => typeof selectedPath === "string")
-          ? { paths, type: "openSelection" }
-          : undefined
-      );
+      return Array.isArray(paths)
+        && paths.every((selectedPath) => typeof selectedPath === "string")
+        ? { paths, type: "openSelection" }
+        : undefined;
     }
 
     case "renameSelection": {
@@ -389,7 +386,6 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
       const { currentDirectory, paths } = rawMessage;
 
       return typeof currentDirectory === "string"
-        // eslint-disable-next-line complete/prefer-is-array
         && Array.isArray(paths)
         && paths.every((selectedPath) => typeof selectedPath === "string")
         ? { currentDirectory, paths, type: "deleteSelection" }
@@ -400,7 +396,6 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
       const { currentDirectory, paths } = rawMessage;
 
       return typeof currentDirectory === "string"
-        // eslint-disable-next-line complete/prefer-is-array
         && Array.isArray(paths)
         && paths.every((selectedPath) => typeof selectedPath === "string")
         ? { currentDirectory, paths, type: "pasteSelection" }

@@ -295,6 +295,13 @@ function registerEventHandlers() {
         return;
       }
 
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "m") {
+        event.preventDefault();
+        event.stopPropagation();
+        createFile();
+        return;
+      }
+
       if (event.key === "F5") {
         event.preventDefault();
         event.stopPropagation();

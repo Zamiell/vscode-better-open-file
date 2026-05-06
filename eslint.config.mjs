@@ -13,6 +13,13 @@ export default defineConfig(
   {
     rules: {
       // Insert changed or disabled rules here, if necessary.
+
+      // @template-customization-start
+
+      // We cannot use "complete-common" in this extension.
+      "complete/prefer-is-array": "off",
+
+      // @template-customization-end
     },
   },
 
