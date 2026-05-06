@@ -21,6 +21,11 @@ type WebviewMessage =
       readonly type: "deleteSelection";
     }
   | {
+      readonly currentDirectory: string;
+      readonly paths: readonly string[];
+      readonly type: "pasteSelection";
+    }
+  | {
       readonly path: string;
       readonly type: "listDirectory" | "navigate";
     }
@@ -88,6 +93,11 @@ export async function handleMessage(
 
     case "deleteSelection": {
       await deleteSelection(panel, message.currentDirectory, message.paths);
+      break;
+    }
+
+    case "pasteSelection": {
+      await pasteSelection(panel, message.currentDirectory, message.paths);
       break;
     }
 
@@ -386,6 +396,17 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
         : undefined;
     }
 
+    case "pasteSelection": {
+      const { currentDirectory, paths } = rawMessage;
+
+      return typeof currentDirectory === "string"
+        // eslint-disable-next-line complete/prefer-is-array
+        && Array.isArray(paths)
+        && paths.every((selectedPath) => typeof selectedPath === "string")
+        ? { currentDirectory, paths, type: "pasteSelection" }
+        : undefined;
+    }
+
     default: {
       return undefined;
     }
@@ -456,7 +477,7 @@ async function createUniqueDirectory(parentPath: string): Promise<string> {
   const existingNames = new Set(
     directoryEntries.map((directoryEntry) => directoryEntry.toLowerCase()),
   );
-  const directoryName = getAvailableDirectoryName(existingNames);
+  const directoryName = getAvailableName(existingNames, "New folder");
   const directoryPath = path.join(parentPath, directoryName);
 
   try {
@@ -471,22 +492,12 @@ async function createUniqueDirectory(parentPath: string): Promise<string> {
   }
 }
 
-function getAvailableDirectoryName(existingNames: ReadonlySet<string>): string {
-  for (let index = 1; ; index++) {
-    // "New folder" is what Windows calls new directories by default, so we match this convention.
-    const directoryName = index === 1 ? "New folder" : `New folder (${index})`;
-    if (!existingNames.has(directoryName.toLowerCase())) {
-      return directoryName;
-    }
-  }
-}
-
 async function createUniqueTextDocument(parentPath: string): Promise<string> {
   const directoryEntries = await fs.readdir(parentPath);
   const existingNames = new Set(
     directoryEntries.map((directoryEntry) => directoryEntry.toLowerCase()),
   );
-  const fileName = getAvailableTextDocumentName(existingNames);
+  const fileName = getAvailableName(existingNames, "New Text Document", ".txt");
   const filePath = path.join(parentPath, fileName);
 
   try {
@@ -501,18 +512,115 @@ async function createUniqueTextDocument(parentPath: string): Promise<string> {
   }
 }
 
-function getAvailableTextDocumentName(
+function getAvailableName(
   existingNames: ReadonlySet<string>,
+  name: string,
+  extension = "",
 ): string {
   for (let index = 1; ; index++) {
-    const fileName =
-      index === 1
-        ? "New Text Document.txt"
-        : `New Text Document (${index}).txt`;
-    if (!existingNames.has(fileName.toLowerCase())) {
-      return fileName;
+    const availableName =
+      index === 1 ? `${name}${extension}` : `${name} (${index})${extension}`;
+    if (!existingNames.has(availableName.toLowerCase())) {
+      return availableName;
     }
   }
+}
+
+async function pasteSelection(
+  panel: vscode.WebviewPanel,
+  currentDirectory: string,
+  selectedPaths: readonly string[],
+) {
+  try {
+    if (selectedPaths.length === 0) {
+      await postError(panel, "Copy a file before pasting.");
+      return;
+    }
+
+    const absoluteDirectory = path.resolve(currentDirectory);
+    const stat = await fs.stat(absoluteDirectory);
+    if (!stat.isDirectory()) {
+      await postError(panel, `${absoluteDirectory} is not a directory.`);
+      return;
+    }
+
+    let lastCopiedPath: string | undefined;
+    for (const selectedPath of selectedPaths) {
+      // Copies are sequential so duplicate names are allocated after each file lands.
+      // eslint-disable-next-line no-await-in-loop
+      lastCopiedPath = await copyPathToDirectory(
+        path.resolve(selectedPath),
+        absoluteDirectory,
+      );
+    }
+
+    await sendDirectoryListing(panel, absoluteDirectory, lastCopiedPath);
+  } catch (error) {
+    await postError(panel, getErrorMessage(error));
+  }
+}
+
+async function copyPathToDirectory(
+  sourcePath: string,
+  targetDirectory: string,
+): Promise<string> {
+  const sourceStat = await fs.stat(sourcePath);
+  const targetPath = await getAvailableCopyPath(
+    targetDirectory,
+    path.basename(sourcePath),
+    sourceStat.isDirectory(),
+  );
+
+  try {
+    await fs.cp(sourcePath, targetPath, {
+      errorOnExist: true,
+      force: false,
+      recursive: sourceStat.isDirectory(),
+    });
+    return targetPath;
+  } catch (error) {
+    if (hasErrorCode(error, "EEXIST")) {
+      return await copyPathToDirectory(sourcePath, targetDirectory);
+    }
+
+    throw error;
+  }
+}
+
+async function getAvailableCopyPath(
+  parentPath: string,
+  sourceName: string,
+  sourceIsDirectory: boolean,
+): Promise<string> {
+  const directoryEntries = await fs.readdir(parentPath);
+  const existingNames = new Set(
+    directoryEntries.map((directoryEntry) => directoryEntry.toLowerCase()),
+  );
+  const { extension, name } = splitCopyName(sourceName, sourceIsDirectory);
+
+  return path.join(
+    parentPath,
+    getAvailableName(existingNames, name, extension),
+  );
+}
+
+function splitCopyName(
+  fileName: string,
+  fileIsDirectory: boolean,
+): { readonly extension: string; readonly name: string } {
+  if (fileIsDirectory) {
+    return { extension: "", name: fileName };
+  }
+
+  const extensionIndex = fileName.lastIndexOf(".");
+  if (extensionIndex <= 0) {
+    return { extension: "", name: fileName };
+  }
+
+  return {
+    extension: fileName.slice(extensionIndex),
+    name: fileName.slice(0, extensionIndex),
+  };
 }
 
 function hasErrorCode(error: unknown, code: string): boolean {

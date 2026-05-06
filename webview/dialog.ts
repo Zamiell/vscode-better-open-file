@@ -47,6 +47,11 @@ type WebviewToHostMessage =
       readonly type: "deleteSelection";
     }
   | {
+      readonly currentDirectory: string;
+      readonly paths: readonly string[];
+      readonly type: "pasteSelection";
+    }
+  | {
       readonly path: string;
       readonly type: "listDirectory" | "navigate";
     }
@@ -71,6 +76,7 @@ interface DialogState {
   forwardStack: string[];
   historyStack: string[];
   parentPath: string | undefined;
+  copiedPaths: readonly string[];
   pendingSelectedPath:
     | {
         readonly directoryPath: string;
@@ -90,6 +96,7 @@ const state: DialogState = {
   forwardStack: [],
   historyStack: [],
   parentPath: undefined,
+  copiedPaths: [],
   pendingSelectedPath: undefined,
   renamingPath: undefined,
   selectedPaths: new Set<string>(),
@@ -99,12 +106,14 @@ const elements = {
   addressInput: getElement("addressInput", HTMLInputElement),
   backButton: getElement("backButton", HTMLButtonElement),
   cancelButton: getElement("cancelButton", HTMLButtonElement),
+  contextCopyButton: getElement("contextCopyButton", HTMLButtonElement),
   contextMenu: getElement("contextMenu", HTMLDivElement),
   contextNewDirectoryButton: getElement(
     "contextNewDirectoryButton",
     HTMLButtonElement,
   ),
   contextNewFileButton: getElement("contextNewFileButton", HTMLButtonElement),
+  contextPasteButton: getElement("contextPasteButton", HTMLButtonElement),
   contextRenameButton: getElement("contextRenameButton", HTMLButtonElement),
   clearFilterButton: getElement("clearFilterButton", HTMLButtonElement),
   errorStatus: getElement("errorStatus", HTMLDivElement),
@@ -178,8 +187,10 @@ function registerEventHandlers() {
 
   elements.newFileButton.addEventListener("click", createFile);
   elements.newDirectoryButton.addEventListener("click", createDirectory);
+  registerContextMenuItem(elements.contextCopyButton, copySelection);
   registerContextMenuItem(elements.contextNewDirectoryButton, createDirectory);
   registerContextMenuItem(elements.contextNewFileButton, createFile);
+  registerContextMenuItem(elements.contextPasteButton, pasteSelection);
   registerContextMenuItem(elements.contextRenameButton, beginRenameSelection);
 
   elements.upButton.addEventListener("click", navigateUp);
@@ -230,6 +241,23 @@ function registerEventHandlers() {
     (event) => {
       if (isRenameInputTarget(event.target)) {
         return;
+      }
+
+      if (event.ctrlKey && !event.altKey && !event.shiftKey) {
+        const key = event.key.toLowerCase();
+        if (key === "c" && !isNativeContextMenuTarget(event.target)) {
+          event.preventDefault();
+          event.stopPropagation();
+          copySelection();
+          return;
+        }
+
+        if (key === "v" && !isNativeContextMenuTarget(event.target)) {
+          event.preventDefault();
+          event.stopPropagation();
+          pasteSelection();
+          return;
+        }
       }
 
       if (event.key === "Escape" && elements.contextMenu.hidden === false) {
@@ -420,6 +448,9 @@ function showContextMenu(
   target: EventTarget | null,
 ) {
   const contextEntry = getContextMenuEntry(target);
+  elements.contextCopyButton.hidden = contextEntry === undefined;
+  elements.contextPasteButton.hidden = false;
+  elements.contextPasteButton.disabled = state.copiedPaths.length === 0;
   elements.contextRenameButton.hidden = contextEntry === undefined;
   if (contextEntry !== undefined) {
     selectEntry(contextEntry, false, false);
@@ -892,6 +923,35 @@ function deleteSelection() {
     currentDirectory: state.currentPath,
     paths: selectedPaths,
     type: "deleteSelection",
+  });
+}
+
+function copySelection() {
+  const selectedPaths = [...state.selectedPaths];
+  if (selectedPaths.length === 0) {
+    showError("Select a file to copy.");
+    return;
+  }
+
+  state.copiedPaths = selectedPaths;
+  hideError();
+}
+
+function pasteSelection() {
+  if (state.copiedPaths.length === 0) {
+    showError("Copy a file before pasting.");
+    return;
+  }
+
+  if (state.currentPath === "") {
+    showError("You must be in a valid directory before pasting.");
+    return;
+  }
+
+  vscode.postMessage({
+    currentDirectory: state.currentPath,
+    paths: state.copiedPaths,
+    type: "pasteSelection",
   });
 }
 
