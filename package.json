@@ -48,7 +48,7 @@
     ]
   },
   "dependencies": {
-    "@types/vscode": "1.118.0"
+    "@types/vscode": "1.120.0"
   },
   "devDependencies": {
     "@vscode/vsce": "3.9.1",
