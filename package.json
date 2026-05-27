@@ -35,7 +35,7 @@
     "build": "bun run ./scripts/build.ts",
     "lint": "bun run ./scripts/lint.ts",
     "package": "bun run build && vsce package",
-    "publish": "bun run build && vsce publish",
+    "publish": "bun run build && vsce publish && ovsx publish",
     "update": "complete-cli update"
   },
   "contributes": {
@@ -55,6 +55,7 @@
     "complete-cli": "1.5.23",
     "complete-lint": "5.11.0",
     "complete-node": "16.4.1",
+    "ovsx": "0.10.12",
     "typescript": "6.0.3"
   },
   "engines": {
