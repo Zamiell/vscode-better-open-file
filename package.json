@@ -34,8 +34,10 @@
   "scripts": {
     "build": "bun run ./scripts/build.ts",
     "lint": "bun run ./scripts/lint.ts",
-    "package": "bun run build && vsce package",
-    "publish": "bun run build && vsce publish && ovsx publish",
+    "package": "bun run build && vsce package --out vscode-better-open-file.vsix",
+    "publish": "bun run package && bun run publish:vscode && bun run publish:open-vsx",
+    "publish:open-vsx": "ovsx publish vscode-better-open-file.vsix",
+    "publish:vscode": "vsce publish --packagePath vscode-better-open-file.vsix",
     "update": "complete-cli update"
   },
   "contributes": {
