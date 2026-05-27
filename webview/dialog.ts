@@ -655,6 +655,14 @@ function clearSelection() {
   updateOpenButton();
 }
 
+function selectAllEntries() {
+  state.selectedPaths = new Set(
+    state.filteredEntries.map((entry) => entry.path),
+  );
+  updateRenderedSelection();
+  updateOpenButton();
+}
+
 function selectFirstEntry(focusSelectedEntry: boolean) {
   const firstEntry = state.filteredEntries[0];
   if (firstEntry === undefined) {
@@ -1033,6 +1041,18 @@ function getPathToSelectAfterDelete(
 
 function handleFileListKeydown(event: KeyboardEvent) {
   if (handleFileListFilterKeydown(event)) {
+    return;
+  }
+
+  if (
+    event.ctrlKey
+    && !event.altKey
+    && !event.metaKey
+    && !event.shiftKey
+    && event.key.toLowerCase() === "a"
+  ) {
+    event.preventDefault();
+    selectAllEntries();
     return;
   }
 
