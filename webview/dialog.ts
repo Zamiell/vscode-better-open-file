@@ -594,9 +594,16 @@ function selectEntry(
   toggleSelection: boolean,
   rangeSelection: boolean,
 ) {
-  if (!toggleSelection && !rangeSelection) {
+  const selectedPath = getFocusedEntryPath() ?? [...state.selectedPaths].at(-1);
+
+  if (rangeSelection && selectedPath !== undefined) {
+    state.selectedPaths = new Set([
+      ...state.selectedPaths,
+      ...getEntryRangePaths(selectedPath, entry.path),
+    ]);
+  } else if (!toggleSelection) {
     state.selectedPaths = new Set([entry.path]);
-  } else if (toggleSelection && state.selectedPaths.has(entry.path)) {
+  } else if (state.selectedPaths.has(entry.path)) {
     state.selectedPaths.delete(entry.path);
   } else {
     state.selectedPaths.add(entry.path);
@@ -604,6 +611,42 @@ function selectEntry(
 
   updateRenderedSelection();
   updateOpenButton();
+}
+
+function getEntryRangePaths(
+  startPath: string,
+  endPath: string,
+): readonly string[] {
+  const startIndex = state.filteredEntries.findIndex(
+    (entry) => entry.path === startPath,
+  );
+  const endIndex = state.filteredEntries.findIndex(
+    (entry) => entry.path === endPath,
+  );
+
+  if (startIndex === -1 || endIndex === -1) {
+    return [endPath];
+  }
+
+  const firstIndex = Math.min(startIndex, endIndex);
+  const lastIndex = Math.max(startIndex, endIndex);
+
+  return state.filteredEntries
+    .slice(firstIndex, lastIndex + 1)
+    .map((entry) => entry.path);
+}
+
+function getFocusedEntryPath(): string | undefined {
+  if (!(document.activeElement instanceof Element)) {
+    return undefined;
+  }
+
+  const focusedRow = document.activeElement.closest<HTMLElement>(".file-row");
+  if (focusedRow === null || !elements.fileList.contains(focusedRow)) {
+    return undefined;
+  }
+
+  return focusedRow.dataset["path"];
 }
 
 function clearSelection() {
@@ -1020,7 +1063,7 @@ function handleFileListKeydown(event: KeyboardEvent) {
 
   event.preventDefault();
   const selectedPaths = [...state.selectedPaths];
-  const selectedPath = selectedPaths.at(-1);
+  const selectedPath = getFocusedEntryPath() ?? selectedPaths.at(-1);
   const selectedIndex = state.filteredEntries.findIndex(
     (entry) => entry.path === selectedPath,
   );
