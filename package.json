@@ -53,11 +53,11 @@
     "@types/vscode": "1.120.0"
   },
   "devDependencies": {
-    "@vscode/vsce": "3.9.1",
+    "@vscode/vsce": "3.9.2",
     "complete-cli": "1.5.23",
-    "complete-lint": "5.11.0",
-    "complete-node": "16.4.1",
-    "ovsx": "0.10.12",
+    "complete-lint": "5.12.0",
+    "complete-node": "17.0.0",
+    "ovsx": "1.0.0",
     "typescript": "6.0.3"
   },
   "engines": {
