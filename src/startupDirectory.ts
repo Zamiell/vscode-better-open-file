@@ -3,12 +3,12 @@ export interface FileUriLike {
   readonly path?: string;
 }
 
-export interface TextTabInputLike {
+interface TextTabInputLike {
   readonly kind: "text";
   readonly uri: FileUriLike;
 }
 
-export interface TextDiffTabInputLike {
+interface TextDiffTabInputLike {
   readonly kind: "textDiff";
   readonly modified: FileUriLike;
 }
