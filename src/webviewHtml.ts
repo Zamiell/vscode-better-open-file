@@ -85,6 +85,7 @@ export function getWebviewHtml(
 
       <div id="contextMenu" class="context-menu" role="menu" aria-label="File list actions" hidden>
         <button id="contextCopyButton" class="context-menu-item" type="button" role="menuitem" hidden>Copy (Ctrl+C)</button>
+        <button id="contextCutButton" class="context-menu-item" type="button" role="menuitem" hidden>Cut (Ctrl+X)</button>
         <button id="contextPasteButton" class="context-menu-item" type="button" role="menuitem" hidden>Paste (Ctrl+V)</button>
         <button id="contextRenameButton" class="context-menu-item" type="button" role="menuitem" hidden>Rename (F2)</button>
         <button id="contextNewFileButton" class="context-menu-item" type="button" role="menuitem">New File (Ctrl+Shift+M)</button>

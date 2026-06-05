@@ -3,6 +3,8 @@ import path from "node:path";
 import * as vscode from "vscode";
 import { listDirectory } from "./dialogFilesystem.js";
 
+type ClipboardOperation = "copy" | "cut";
+
 type WebviewMessage =
   | {
       readonly type: "cancel";
@@ -22,6 +24,7 @@ type WebviewMessage =
     }
   | {
       readonly currentDirectory: string;
+      readonly operation: ClipboardOperation;
       readonly paths: readonly string[];
       readonly type: "pasteSelection";
     }
@@ -97,7 +100,12 @@ export async function handleMessage(
     }
 
     case "pasteSelection": {
-      await pasteSelection(panel, message.currentDirectory, message.paths);
+      await pasteSelection(
+        panel,
+        message.currentDirectory,
+        message.paths,
+        message.operation,
+      );
       break;
     }
 
@@ -316,10 +324,12 @@ async function sendDirectoryListing(
   requestedPath: string,
   selectedPath?: string,
   renamePath?: string,
+  clearClipboard = false,
 ) {
   try {
     const listing = await listDirectory(requestedPath);
     await panel.webview.postMessage({
+      clearClipboard,
       listing,
       renamePath,
       selectedPath,
@@ -393,12 +403,13 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
     }
 
     case "pasteSelection": {
-      const { currentDirectory, paths } = rawMessage;
+      const { currentDirectory, operation, paths } = rawMessage;
 
       return typeof currentDirectory === "string"
+        && isClipboardOperation(operation)
         && Array.isArray(paths)
         && paths.every((selectedPath) => typeof selectedPath === "string")
-        ? { currentDirectory, paths, type: "pasteSelection" }
+        ? { currentDirectory, operation, paths, type: "pasteSelection" }
         : undefined;
     }
 
@@ -410,6 +421,10 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isClipboardOperation(value: unknown): value is ClipboardOperation {
+  return value === "copy" || value === "cut";
 }
 
 function isDirectChildPath(parentPath: string, childPath: string): boolean {
@@ -525,10 +540,11 @@ async function pasteSelection(
   panel: vscode.WebviewPanel,
   currentDirectory: string,
   selectedPaths: readonly string[],
+  operation: ClipboardOperation,
 ) {
   try {
     if (selectedPaths.length === 0) {
-      await postError(panel, "Copy a file before pasting.");
+      await postError(panel, "Copy or cut a file before pasting.");
       return;
     }
 
@@ -539,20 +555,37 @@ async function pasteSelection(
       return;
     }
 
-    let lastCopiedPath: string | undefined;
+    let lastPastedPath: string | undefined;
     for (const selectedPath of selectedPaths) {
-      // Copies are sequential so duplicate names are allocated after each file lands.
+      const absoluteSelectedPath = path.resolve(selectedPath);
       // eslint-disable-next-line no-await-in-loop
-      lastCopiedPath = await copyPathToDirectory(
-        path.resolve(selectedPath),
+      lastPastedPath = await pastePathToDirectory(
+        operation,
+        absoluteSelectedPath,
         absoluteDirectory,
       );
     }
 
-    await sendDirectoryListing(panel, absoluteDirectory, lastCopiedPath);
+    await sendDirectoryListing(
+      panel,
+      absoluteDirectory,
+      lastPastedPath,
+      undefined,
+      operation === "cut",
+    );
   } catch (error) {
     await postError(panel, getErrorMessage(error));
   }
+}
+
+async function pastePathToDirectory(
+  operation: ClipboardOperation,
+  sourcePath: string,
+  targetDirectory: string,
+): Promise<string> {
+  return operation === "copy"
+    ? await copyPathToDirectory(sourcePath, targetDirectory)
+    : await movePathToDirectory(sourcePath, targetDirectory);
 }
 
 async function copyPathToDirectory(
@@ -580,6 +613,60 @@ async function copyPathToDirectory(
 
     throw error;
   }
+}
+
+async function movePathToDirectory(
+  sourcePath: string,
+  targetDirectory: string,
+): Promise<string> {
+  const sourceStat = await fs.stat(sourcePath);
+  if (
+    sourceStat.isDirectory()
+    && isSameOrChildPath(sourcePath, targetDirectory)
+  ) {
+    throw new Error("A folder cannot be moved into itself.");
+  }
+
+  const targetPath = path.join(targetDirectory, path.basename(sourcePath));
+  if (await pathExists(targetPath)) {
+    const targetStat = await fs.stat(targetPath);
+    if (
+      sourceStat.dev === targetStat.dev
+      && sourceStat.ino === targetStat.ino
+    ) {
+      return targetPath;
+    }
+
+    throw new Error(`"${path.basename(targetPath)}" already exists.`);
+  }
+
+  try {
+    await fs.rename(sourcePath, targetPath);
+  } catch (error) {
+    if (!hasErrorCode(error, "EXDEV")) {
+      throw error;
+    }
+
+    await fs.cp(sourcePath, targetPath, {
+      errorOnExist: true,
+      force: false,
+      recursive: sourceStat.isDirectory(),
+    });
+
+    await (sourceStat.isDirectory()
+      ? fs.rm(sourcePath, { recursive: true })
+      : fs.unlink(sourcePath));
+  }
+
+  return targetPath;
+}
+
+function isSameOrChildPath(parentPath: string, childPath: string): boolean {
+  const relativePath = path.relative(parentPath, childPath);
+  return (
+    relativePath === ""
+    || (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  );
 }
 
 async function getAvailableCopyPath(

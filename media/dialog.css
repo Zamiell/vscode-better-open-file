@@ -237,6 +237,10 @@ select {
   color: var(--vscode-list-activeSelectionForeground);
 }
 
+.file-row.cut .file-icon {
+  opacity: 0.4;
+}
+
 .file-name {
   align-items: center;
   display: flex;

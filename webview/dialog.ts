@@ -22,6 +22,7 @@ type HostToWebviewMessage =
       readonly type: "init";
     }
   | {
+      readonly clearClipboard?: boolean;
       readonly listing: DirectoryListing;
       readonly renamePath?: string;
       readonly selectedPath?: string;
@@ -48,6 +49,7 @@ type WebviewToHostMessage =
     }
   | {
       readonly currentDirectory: string;
+      readonly operation: ClipboardOperation;
       readonly paths: readonly string[];
       readonly type: "pasteSelection";
     }
@@ -77,6 +79,7 @@ interface DialogState {
   historyStack: string[];
   parentPath: string | undefined;
   copiedPaths: readonly string[];
+  clipboardOperation: ClipboardOperation;
   pendingSelectedPath:
     | {
         readonly directoryPath: string;
@@ -86,6 +89,8 @@ interface DialogState {
   renamingPath: string | undefined;
   selectedPaths: Set<string>;
 }
+
+type ClipboardOperation = "copy" | "cut";
 
 const vscode = acquireVsCodeApi();
 
@@ -97,6 +102,7 @@ const state: DialogState = {
   historyStack: [],
   parentPath: undefined,
   copiedPaths: [],
+  clipboardOperation: "copy",
   pendingSelectedPath: undefined,
   renamingPath: undefined,
   selectedPaths: new Set<string>(),
@@ -107,6 +113,7 @@ const elements = {
   backButton: getElement("backButton", HTMLButtonElement),
   cancelButton: getElement("cancelButton", HTMLButtonElement),
   contextCopyButton: getElement("contextCopyButton", HTMLButtonElement),
+  contextCutButton: getElement("contextCutButton", HTMLButtonElement),
   contextMenu: getElement("contextMenu", HTMLDivElement),
   contextNewDirectoryButton: getElement(
     "contextNewDirectoryButton",
@@ -144,6 +151,10 @@ globalThis.addEventListener(
     }
 
     if (message.type === "directoryListing") {
+      if (message.clearClipboard === true) {
+        clearClipboard();
+      }
+
       setDirectoryListing(
         message.listing,
         message.selectedPath,
@@ -188,6 +199,7 @@ function registerEventHandlers() {
   elements.newFileButton.addEventListener("click", createFile);
   elements.newDirectoryButton.addEventListener("click", createDirectory);
   registerContextMenuItem(elements.contextCopyButton, copySelection);
+  registerContextMenuItem(elements.contextCutButton, cutSelection);
   registerContextMenuItem(elements.contextNewDirectoryButton, createDirectory);
   registerContextMenuItem(elements.contextNewFileButton, createFile);
   registerContextMenuItem(elements.contextPasteButton, pasteSelection);
@@ -249,6 +261,13 @@ function registerEventHandlers() {
           event.preventDefault();
           event.stopPropagation();
           copySelection();
+          return;
+        }
+
+        if (key === "x" && !isNativeContextMenuTarget(event.target)) {
+          event.preventDefault();
+          event.stopPropagation();
+          cutSelection();
           return;
         }
 
@@ -456,6 +475,7 @@ function showContextMenu(
 ) {
   const contextEntry = getContextMenuEntry(target);
   elements.contextCopyButton.hidden = contextEntry === undefined;
+  elements.contextCutButton.hidden = contextEntry === undefined;
   elements.contextPasteButton.hidden = false;
   elements.contextPasteButton.disabled = state.copiedPaths.length === 0;
   elements.contextRenameButton.hidden = contextEntry === undefined;
@@ -523,6 +543,7 @@ function createFileRow(entry: FileEntry) {
   const row = document.createElement("div");
   row.className = "file-row";
   row.dataset["path"] = entry.path;
+  row.classList.toggle("cut", isCutPath(entry.path));
   row.role = "option";
   row.tabIndex = -1;
 
@@ -797,6 +818,7 @@ function updateRenderedSelection() {
     const isSelected =
       rowPath !== undefined && state.selectedPaths.has(rowPath);
     row.classList.toggle("selected", isSelected);
+    row.classList.toggle("cut", rowPath !== undefined && isCutPath(rowPath));
     row.ariaSelected = String(isSelected);
   }
 }
@@ -992,12 +1014,27 @@ function copySelection() {
   }
 
   state.copiedPaths = selectedPaths;
+  state.clipboardOperation = "copy";
+  updateRenderedSelection();
+  hideError();
+}
+
+function cutSelection() {
+  const selectedPaths = [...state.selectedPaths];
+  if (selectedPaths.length === 0) {
+    showError("Select a file to cut.");
+    return;
+  }
+
+  state.copiedPaths = selectedPaths;
+  state.clipboardOperation = "cut";
+  updateRenderedSelection();
   hideError();
 }
 
 function pasteSelection() {
   if (state.copiedPaths.length === 0) {
-    showError("Copy a file before pasting.");
+    showError("Copy or cut a file before pasting.");
     return;
   }
 
@@ -1008,9 +1045,21 @@ function pasteSelection() {
 
   vscode.postMessage({
     currentDirectory: state.currentPath,
+    operation: state.clipboardOperation,
     paths: state.copiedPaths,
     type: "pasteSelection",
   });
+}
+
+function clearClipboard() {
+  state.copiedPaths = [];
+  state.clipboardOperation = "copy";
+}
+
+function isCutPath(entryPath: string): boolean {
+  return (
+    state.clipboardOperation === "cut" && state.copiedPaths.includes(entryPath)
+  );
 }
 
 function getPathToSelectAfterDelete(

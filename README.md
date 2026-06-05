@@ -54,6 +54,7 @@ The aim is to be in the [Goldilocks zone](https://en.wikipedia.org/wiki/Goldiloc
 - You can rename the currently selected file or directory with the F2 key.
 - Right-click to open the context menu:
   - Copy (Ctrl + C)
+  - Cut (Ctrl + X)
   - Paste (Ctrl + V)
   - Rename (F2)
   - New File (Ctrl + Shift + M)
