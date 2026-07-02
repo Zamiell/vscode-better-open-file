@@ -1,3 +1,4 @@
+import * as fs from "node:fs/promises";
 import * as vscode from "vscode";
 import { getStartupDirectory } from "./startupDirectoryResolver.js";
 import type { DialogMode } from "./types.js";
@@ -20,12 +21,18 @@ export class BetterOpenFileController {
   }
 
   public async save(): Promise<void> {
-    if (vscode.window.activeTextEditor === undefined) {
+    const activeDocument = vscode.window.activeTextEditor?.document;
+    if (activeDocument === undefined) {
       await vscode.window.showErrorMessage("Open a file before saving.", "OK");
       return;
     }
 
-    this.documentToSave = vscode.window.activeTextEditor.document;
+    if (await fileExists(activeDocument)) {
+      await activeDocument.save();
+      return;
+    }
+
+    this.documentToSave = activeDocument;
     await this.showDialog("save");
   }
 
@@ -88,4 +95,25 @@ function getViewType(mode: DialogMode): string {
 
 function getTitle(mode: DialogMode): string {
   return mode === "open" ? "Better Open File" : "Better Save File";
+}
+
+async function fileExists(document: vscode.TextDocument): Promise<boolean> {
+  if (document.uri.scheme !== "file") {
+    return false;
+  }
+
+  try {
+    const stat = await fs.stat(document.uri.fsPath);
+    return stat.isFile();
+  } catch (error) {
+    if (hasErrorCode(error, "ENOENT")) {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+function hasErrorCode(error: unknown, code: string): boolean {
+  return error instanceof Error && "code" in error && error.code === code;
 }

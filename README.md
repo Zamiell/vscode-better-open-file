@@ -6,7 +6,7 @@ The extension contributes the `Better Open File: Open File` and `Better Open Fil
 
 ## Why Does This Exist?
 
-One of the best things about Visual Studio Code is the "Ctrl + P" hotkey, which toggles the [Quick Open](https://code.visualstudio.com/docs/editing/editingevolved) feature. This allows you to immediately start typing and fuzzy-match the name of the file that you want to open. However, in some situations, you want to open or save a file, but you don't know the exact name, or the file is not inside of the project workspace. In those situations, you have to resort to the normal "Open File..." or "Save As..." dialog. This will either:
+One of the best things about Visual Studio Code is the "Ctrl + P" hotkey, which toggles the [Quick Open](https://code.visualstudio.com/docs/editing/editingevolved) feature. This allows you to immediately start typing and fuzzy-match the name of the file that you want to open. However, in some situations, you want to open a file, but you don't know the exact name, or the file is not inside of the project workspace. In those situations, you have to resort to the normal "Open File..." dialog. This will either:
 
 1. Open the file selection dialog provided by the operating system (in normal situations).
 2. Open the "[simple file dialog](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_simple-file-dialog)" provided by Visual Studio Code (when the project is on a remote computer).
@@ -15,7 +15,9 @@ Unfortunately, both of these file dialogs suck - they don't allow the same fuzzy
 
 ## How Do I Use It?
 
-It is not possible for Visual Studio Code extensions to replace the vanilla "File --> Open File..." or "File --> Save As..." functionality. Instead, you can remap hotkeys to trigger the `Better Open File: Open File` and `Better Open File: Save File` commands. To remap "Ctrl + O" for opening files:
+It is not possible for Visual Studio Code extensions to replace the vanilla "File --> Open File..." or "File --> Save..." functionality. Instead, you can remap hotkeys to trigger the `Better Open File: Open File` and `Better Open File: Save File` commands.
+
+To remap "Ctrl + O" for opening files:
 
 - Press "Ctrl + Shift + P" to bring up the [Command Palette](https://code.visualstudio.com/api/ux-guidelines/command-palette).
 - Type: `Preferences: Open Keyboard Shortcuts (JSON)`
@@ -28,11 +30,11 @@ It is not possible for Visual Studio Code extensions to replace the vanilla "Fil
   },
 ```
 
-To remap "Ctrl + Shift + S" for saving files, add:
+To remap "Ctrl + S" for saving files, add:
 
 ```json
   {
-    "key": "ctrl+shift+s",
+    "key": "ctrl+s",
     "command": "betterOpenFile.saveFile",
   },
 ```
