@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import path from "node:path";
 import * as vscode from "vscode";
 import { listDirectory } from "./dialogFilesystem.js";
+import type { DialogMode } from "./types.js";
 
 type ClipboardOperation = "copy" | "cut";
 
@@ -34,7 +35,7 @@ type WebviewMessage =
     }
   | {
       readonly paths: readonly string[];
-      readonly type: "openSelection";
+      readonly type: "confirmSelection";
     }
   | {
       readonly currentDirectory: string;
@@ -50,6 +51,8 @@ export async function handleMessage(
   panel: vscode.WebviewPanel,
   rawMessage: unknown,
   startupDirectory: string,
+  mode: DialogMode,
+  documentToSave?: vscode.TextDocument,
 ): Promise<void> {
   const message = parseWebviewMessage(rawMessage);
   if (message === undefined) {
@@ -69,8 +72,8 @@ export async function handleMessage(
       break;
     }
 
-    case "openSelection": {
-      await openSelection(panel, message.paths);
+    case "confirmSelection": {
+      await confirmSelection(panel, message.paths, mode, documentToSave);
       break;
     }
 
@@ -125,6 +128,20 @@ async function initialize(
     type: "init",
   });
   await sendDirectoryListing(panel, startupDirectory);
+}
+
+async function confirmSelection(
+  panel: vscode.WebviewPanel,
+  selectedPaths: readonly string[],
+  mode: DialogMode,
+  documentToSave?: vscode.TextDocument,
+) {
+  if (mode === "save") {
+    await saveSelection(panel, selectedPaths, documentToSave);
+    return;
+  }
+
+  await openSelection(panel, selectedPaths);
 }
 
 async function openSelection(
@@ -187,6 +204,66 @@ async function openSelection(
         }),
     ),
   );
+}
+
+async function saveSelection(
+  panel: vscode.WebviewPanel,
+  selectedPaths: readonly string[],
+  documentToSave?: vscode.TextDocument,
+) {
+  try {
+    if (documentToSave === undefined) {
+      await postError(panel, "Open a file before saving.");
+      return;
+    }
+
+    if (selectedPaths.length === 0) {
+      await postError(panel, "Enter a file name to save.");
+      return;
+    }
+
+    if (selectedPaths.length > 1) {
+      await postError(panel, "Select one file path to save.");
+      return;
+    }
+
+    const selectedPath = selectedPaths[0];
+    if (selectedPath === undefined) {
+      await postError(panel, "Enter a file name to save.");
+      return;
+    }
+
+    const absolutePath = path.resolve(selectedPath);
+    const existingStat = await getStat(absolutePath);
+    if (existingStat?.isDirectory() === true) {
+      await sendDirectoryListing(panel, absolutePath);
+      return;
+    }
+
+    const parentPath = path.dirname(absolutePath);
+    const parentStat = await fs.stat(parentPath);
+    if (!parentStat.isDirectory()) {
+      await postError(panel, `${parentPath} is not a directory.`);
+      return;
+    }
+
+    if (
+      existingStat !== undefined
+      && !(await confirmOverwrite(path.basename(absolutePath)))
+    ) {
+      return;
+    }
+
+    await writeDocumentToPath(documentToSave, absolutePath);
+    panel.dispose();
+
+    const savedDocument = await vscode.workspace.openTextDocument(
+      vscode.Uri.file(absolutePath),
+    );
+    await vscode.window.showTextDocument(savedDocument, { preview: false });
+  } catch (error) {
+    await postError(panel, getErrorMessage(error));
+  }
 }
 
 async function createDirectory(
@@ -368,12 +445,12 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
       return undefined;
     }
 
-    case "openSelection": {
+    case "confirmSelection": {
       const { paths } = rawMessage;
 
       return Array.isArray(paths)
         && paths.every((selectedPath) => typeof selectedPath === "string")
-        ? { paths, type: "openSelection" }
+        ? { paths, type: "confirmSelection" }
         : undefined;
     }
 
@@ -480,6 +557,44 @@ async function pathExists(filePath: string): Promise<boolean> {
 
     throw error;
   }
+}
+
+async function getStat(filePath: string) {
+  try {
+    return await fs.stat(filePath);
+  } catch (error) {
+    if (hasErrorCode(error, "ENOENT")) {
+      return undefined;
+    }
+
+    throw error;
+  }
+}
+
+async function confirmOverwrite(fileName: string): Promise<boolean> {
+  const confirmation = await vscode.window.showWarningMessage(
+    `Overwrite "${fileName}"?`,
+    { modal: true },
+    "Overwrite",
+  );
+
+  return confirmation === "Overwrite";
+}
+
+async function writeDocumentToPath(
+  documentToSave: vscode.TextDocument,
+  filePath: string,
+) {
+  const targetUri = vscode.Uri.file(filePath);
+  if (documentToSave.uri.toString() === targetUri.toString()) {
+    await documentToSave.save();
+    return;
+  }
+
+  await vscode.workspace.fs.writeFile(
+    targetUri,
+    Buffer.from(documentToSave.getText()),
+  );
 }
 
 async function createUniqueDirectory(parentPath: string): Promise<string> {

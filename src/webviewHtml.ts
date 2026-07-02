@@ -1,8 +1,10 @@
 import * as vscode from "vscode";
+import type { DialogMode } from "./types.js";
 
 export function getWebviewHtml(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
+  mode: DialogMode,
 ): string {
   const nonce = getNonce();
   const cssUri = webview.asWebviewUri(
@@ -17,6 +19,9 @@ export function getWebviewHtml(
     `script-src 'nonce-${nonce}'`,
     "img-src data:",
   ].join("; ");
+  const dialogTitle = mode === "open" ? "Better Open File" : "Better Save File";
+  const fileNameLabel = mode === "open" ? "Filter files:" : "File name:";
+  const confirmLabel = mode === "open" ? "Open" : "Save";
 
   return `<!doctype html>
 <html lang="en">
@@ -28,10 +33,10 @@ export function getWebviewHtml(
     >
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="${cssUri}">
-    <title>Better Open File</title>
+    <title>${dialogTitle}</title>
   </head>
   <body>
-    <main class="dialog" aria-label="Better Open File">
+    <main class="dialog" aria-label="${dialogTitle}" data-mode="${mode}">
       <header class="toolbar" aria-label="Navigation">
         <button id="backButton" class="icon-button" type="button" title="Back (Alt+Left)" aria-label="Back">
           <span class="navigation-icon back-icon" aria-hidden="true"></span>
@@ -94,10 +99,10 @@ export function getWebviewHtml(
 
       <footer class="footer">
         <div id="itemCount" class="item-count" aria-live="polite">0 items</div>
-        <label for="fileNameInput">Filter files:</label>
+        <label for="fileNameInput">${fileNameLabel}</label>
         <input id="fileNameInput" aria-label="Filter files">
         <button id="clearFilterButton" type="button" title="Clear filter" hidden>Clear</button>
-        <button id="openButton" type="button" class="primary" title="Open (Enter)" disabled>Open</button>
+        <button id="confirmButton" type="button" class="primary" title="${confirmLabel} (Enter)" disabled>${confirmLabel}</button>
         <button id="cancelButton" type="button" title="Cancel (Escape)">Cancel</button>
       </footer>
     </main>

@@ -1,13 +1,17 @@
 import * as vscode from "vscode";
 import { BetterOpenFileController } from "./betterOpenFileController.js";
 
-const commandId = "betterOpenFile.openFile";
+const openFileCommandId = "betterOpenFile.openFile";
+const saveFileCommandId = "betterOpenFile.saveFile";
 
 export function activate(context: vscode.ExtensionContext): void {
   const controller = new BetterOpenFileController(context);
   context.subscriptions.push(
-    vscode.commands.registerCommand(commandId, async () => {
+    vscode.commands.registerCommand(openFileCommandId, async () => {
       await controller.open();
+    }),
+    vscode.commands.registerCommand(saveFileCommandId, async () => {
+      await controller.save();
     }),
   );
 }

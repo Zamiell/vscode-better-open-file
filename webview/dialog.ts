@@ -16,6 +16,8 @@ interface DirectoryListing {
   readonly path: string;
 }
 
+type DialogMode = "open" | "save";
+
 type HostToWebviewMessage =
   | {
       readonly directory: string;
@@ -59,7 +61,7 @@ type WebviewToHostMessage =
     }
   | {
       readonly paths: readonly string[];
-      readonly type: "openSelection";
+      readonly type: "confirmSelection";
     }
   | {
       readonly currentDirectory: string;
@@ -93,6 +95,7 @@ interface DialogState {
 type ClipboardOperation = "copy" | "cut";
 
 const vscode = acquireVsCodeApi();
+const mode = getDialogMode();
 
 const state: DialogState = {
   currentPath: "",
@@ -130,7 +133,7 @@ const elements = {
   itemCount: getElement("itemCount", HTMLDivElement),
   newFileButton: getElement("newFileButton", HTMLButtonElement),
   newDirectoryButton: getElement("newDirectoryButton", HTMLButtonElement),
-  openButton: getElement("openButton", HTMLButtonElement),
+  confirmButton: getElement("confirmButton", HTMLButtonElement),
   refreshButton: getElement("refreshButton", HTMLButtonElement),
   upButton: getElement("upButton", HTMLButtonElement),
 };
@@ -181,7 +184,7 @@ function registerEventHandlers() {
 
   elements.fileNameInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
-      openSelection();
+      confirmSelection();
     }
   });
 
@@ -189,7 +192,7 @@ function registerEventHandlers() {
     clearFileNameFilter(true);
   });
 
-  elements.openButton.addEventListener("click", openSelection);
+  elements.confirmButton.addEventListener("click", confirmSelection);
   elements.cancelButton.addEventListener("click", () => {
     vscode.postMessage({ type: "cancel" });
   });
@@ -589,7 +592,7 @@ function createFileRow(entry: FileEntry) {
     }
 
     state.selectedPaths = new Set([entry.path]);
-    openSelection();
+    confirmSelection();
   });
 
   return row;
@@ -631,7 +634,7 @@ function selectEntry(
   }
 
   updateRenderedSelection();
-  updateOpenButton();
+  updateConfirmButton();
 }
 
 function getEntryRangePaths(
@@ -673,7 +676,7 @@ function getFocusedEntryPath(): string | undefined {
 function clearSelection() {
   state.selectedPaths.clear();
   updateRenderedSelection();
-  updateOpenButton();
+  updateConfirmButton();
 }
 
 function selectAllEntries() {
@@ -681,14 +684,14 @@ function selectAllEntries() {
     state.filteredEntries.map((entry) => entry.path),
   );
   updateRenderedSelection();
-  updateOpenButton();
+  updateConfirmButton();
 }
 
 function selectFirstEntry(focusSelectedEntry: boolean) {
   const firstEntry = state.filteredEntries[0];
   if (firstEntry === undefined) {
     state.selectedPaths.clear();
-    updateOpenButton();
+    updateConfirmButton();
     if (focusSelectedEntry) {
       elements.fileList.focus();
     }
@@ -697,7 +700,7 @@ function selectFirstEntry(focusSelectedEntry: boolean) {
 
   state.selectedPaths = new Set([firstEntry.path]);
   updateRenderedSelection();
-  updateOpenButton();
+  updateConfirmButton();
   if (focusSelectedEntry) {
     focusEntry(firstEntry.path);
   }
@@ -823,8 +826,9 @@ function updateRenderedSelection() {
   }
 }
 
-function updateOpenButton() {
-  elements.openButton.disabled = state.selectedPaths.size === 0;
+function updateConfirmButton() {
+  elements.confirmButton.disabled =
+    state.selectedPaths.size === 0 && getFileNameFilter() === "";
 }
 
 function beginRenameSelection() {
@@ -961,29 +965,31 @@ function isRenameInputTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest(".rename-input") !== null;
 }
 
-function openSelection() {
+function confirmSelection() {
   const selectedPaths = [...state.selectedPaths];
   if (selectedPaths.length > 0) {
-    vscode.postMessage({ paths: selectedPaths, type: "openSelection" });
+    vscode.postMessage({ paths: selectedPaths, type: "confirmSelection" });
     return;
   }
 
   const typedName = elements.fileNameInput.value.trim();
   if (typedName === "") {
-    showError("Select a file to open.");
+    showError(
+      mode === "open" ? "Select a file to open." : "Enter a file name to save.",
+    );
     return;
   }
 
   const typedEntry = state.entries.find((entry) => entry.name === typedName);
   if (typedEntry !== undefined) {
-    vscode.postMessage({ paths: [typedEntry.path], type: "openSelection" });
+    vscode.postMessage({ paths: [typedEntry.path], type: "confirmSelection" });
     return;
   }
 
   const separator = state.currentPath.includes("\\") ? "\\" : "/";
   vscode.postMessage({
     paths: [`${state.currentPath}${separator}${typedName}`],
-    type: "openSelection",
+    type: "confirmSelection",
   });
 }
 
@@ -1122,7 +1128,7 @@ function handleFileListKeydown(event: KeyboardEvent) {
   }
 
   if (event.key === "Enter") {
-    openSelection();
+    confirmSelection();
     return;
   }
 
@@ -1246,6 +1252,7 @@ function updateNavigationButtons() {
 function updateFilterControls() {
   const filterIsActive = getFileNameFilter() !== "";
   elements.clearFilterButton.hidden = elements.fileNameInput.value === "";
+  updateConfirmButton();
   elements.itemCount.textContent = filterIsActive
     ? `${state.filteredEntries.length} of ${formatItemCount(state.entries.length)}`
     : formatItemCount(state.entries.length);
@@ -1299,4 +1306,11 @@ function getElement<ElementType extends HTMLElement>(
   }
 
   return element;
+}
+
+function getDialogMode(): DialogMode {
+  const dialog = document.querySelector(".dialog");
+  return dialog instanceof HTMLElement && dialog.dataset["mode"] === "save"
+    ? "save"
+    : "open";
 }

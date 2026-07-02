@@ -1,12 +1,12 @@
 # vscode-better-open-file
 
-Better Open File is a [Visual Studio Code](https://code.visualstudio.com/) extension that provides a custom file selection dialog that allows you to navigate the file system much faster than the default one.
+Better Open File is a [Visual Studio Code](https://code.visualstudio.com/) extension that provides custom file selection dialogs that allow you to navigate the file system much faster than the default ones.
 
-The extension contributes the `Better Open File: Open File` command.
+The extension contributes the `Better Open File: Open File` and `Better Open File: Save File` commands.
 
 ## Why Does This Exist?
 
-One of the best things about Visual Studio Code is the "Ctrl + P" hotkey, which toggles the [Quick Open](https://code.visualstudio.com/docs/editing/editingevolved) feature. This allows you to immediately start typing and fuzzy-match the name of the file that you want to open. However, in some situations, you want to open a file, but you don't know the exact name, or the file is not inside of the project workspace. In those situations, you have to resort to the "Ctrl + O" hotkey to open the normal "Open File..." dialog. This will either:
+One of the best things about Visual Studio Code is the "Ctrl + P" hotkey, which toggles the [Quick Open](https://code.visualstudio.com/docs/editing/editingevolved) feature. This allows you to immediately start typing and fuzzy-match the name of the file that you want to open. However, in some situations, you want to open or save a file, but you don't know the exact name, or the file is not inside of the project workspace. In those situations, you have to resort to the normal "Open File..." or "Save As..." dialog. This will either:
 
 1. Open the file selection dialog provided by the operating system (in normal situations).
 2. Open the "[simple file dialog](https://code.visualstudio.com/docs/getstarted/tips-and-tricks#_simple-file-dialog)" provided by Visual Studio Code (when the project is on a remote computer).
@@ -15,7 +15,7 @@ Unfortunately, both of these file dialogs suck - they don't allow the same fuzzy
 
 ## How Do I Use It?
 
-It is not possible for Visual Studio Code extensions to replace the vanilla "File --> Open File..." functionality. Instead, you can remap the "Ctrl + O" hotkey to trigger the `Better Open File: Open File` command. To accomplish this:
+It is not possible for Visual Studio Code extensions to replace the vanilla "File --> Open File..." or "File --> Save As..." functionality. Instead, you can remap hotkeys to trigger the `Better Open File: Open File` and `Better Open File: Save File` commands. To remap "Ctrl + O" for opening files:
 
 - Press "Ctrl + Shift + P" to bring up the [Command Palette](https://code.visualstudio.com/api/ux-guidelines/command-palette).
 - Type: `Preferences: Open Keyboard Shortcuts (JSON)`
@@ -25,6 +25,15 @@ It is not possible for Visual Studio Code extensions to replace the vanilla "Fil
   {
     "key": "ctrl+o",
     "command": "betterOpenFile.openFile",
+  },
+```
+
+To remap "Ctrl + Shift + S" for saving files, add:
+
+```json
+  {
+    "key": "ctrl+shift+s",
+    "command": "betterOpenFile.saveFile",
   },
 ```
 
@@ -48,7 +57,7 @@ The aim is to be in the [Goldilocks zone](https://en.wikipedia.org/wiki/Goldiloc
   - New File (Ctrl + Shift + M)
   - New Directory (Ctrl + Shift + N)
 - Bottom-right buttons with hotkeys:
-  - Open (Enter)
+  - Open or Save (Enter)
   - Cancel (Escape)
 - You can delete files or directories with the delete key. (A confirmation dialog will appear.)
 - You can rename the currently selected file or directory with the F2 key.

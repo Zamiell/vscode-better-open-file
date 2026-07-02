@@ -2,12 +2,13 @@
   "name": "vscode-better-open-file",
   "displayName": "Better Open File",
   "version": "1.2.0",
-  "description": "A Windows-style custom file open dialog for Visual Studio Code.",
+  "description": "A Windows-style custom file open and save dialog for Visual Studio Code.",
   "categories": [
     "Other"
   ],
   "keywords": [
     "open",
+    "save",
     "file",
     "simple",
     "dialog",
@@ -45,6 +46,11 @@
       {
         "command": "betterOpenFile.openFile",
         "title": "Open File",
+        "category": "Better Open File"
+      },
+      {
+        "command": "betterOpenFile.saveFile",
+        "title": "Save File",
         "category": "Better Open File"
       }
     ]

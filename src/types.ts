@@ -11,3 +11,5 @@ export interface DirectoryListing {
   readonly parentPath: string | undefined;
   readonly path: string;
 }
+
+export type DialogMode = "open" | "save";
