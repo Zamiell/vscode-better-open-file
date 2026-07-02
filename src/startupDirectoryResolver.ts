@@ -5,10 +5,19 @@ import { isDirectory } from "./dialogFilesystem.js";
 import type { TabInputLike } from "./startupDirectory.js";
 import { getActiveFilePathFromSources } from "./startupDirectory.js";
 
-export async function getStartupDirectory(): Promise<string> {
+interface StartupDirectoryOptions {
+  readonly fallbackFilePath?: string;
+}
+
+export async function getStartupDirectory(
+  options: StartupDirectoryOptions = {},
+): Promise<string> {
   const activeFilePath = getActiveFilePath();
   const candidates: string[] =
     activeFilePath === undefined ? [] : [path.dirname(activeFilePath)];
+  if (options.fallbackFilePath !== undefined) {
+    candidates.push(path.dirname(options.fallbackFilePath));
+  }
 
   const workspaceFolder = getFirstLocalWorkspaceFolder();
   if (workspaceFolder !== undefined) {

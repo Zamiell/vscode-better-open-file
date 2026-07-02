@@ -10,10 +10,18 @@ export class BetterOpenFileController {
 
   private documentToSave: vscode.TextDocument | undefined;
 
+  private lastActiveFilePath: string | undefined;
+
   private readonly panels = new Map<DialogMode, vscode.WebviewPanel>();
 
   public constructor(context: vscode.ExtensionContext) {
     this.context = context;
+    this.updateLastActiveFilePath(vscode.window.activeTextEditor);
+    this.context.subscriptions.push(
+      vscode.window.onDidChangeActiveTextEditor((activeTextEditor) => {
+        this.updateLastActiveFilePath(activeTextEditor);
+      }),
+    );
   }
 
   public async open(): Promise<void> {
@@ -43,7 +51,9 @@ export class BetterOpenFileController {
       return;
     }
 
-    const startupDirectory = await getStartupDirectory();
+    const startupDirectory = await getStartupDirectory({
+      fallbackFilePath: this.lastActiveFilePath,
+    });
     const panel = vscode.window.createWebviewPanel(
       getViewType(mode),
       getTitle(mode),
@@ -87,6 +97,19 @@ export class BetterOpenFileController {
       this.context.subscriptions,
     );
   }
+
+  private updateLastActiveFilePath(
+    activeTextEditor: vscode.TextEditor | undefined,
+  ): void {
+    const activeDocument = activeTextEditor?.document;
+    if (activeDocument !== undefined && isLocalFileDocument(activeDocument)) {
+      this.lastActiveFilePath = activeDocument.uri.fsPath;
+    }
+  }
+}
+
+function isLocalFileDocument(document: vscode.TextDocument): boolean {
+  return document.uri.scheme === "file" && document.uri.fsPath !== "";
 }
 
 function getViewType(mode: DialogMode): string {

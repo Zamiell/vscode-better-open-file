@@ -1,6 +1,7 @@
 export interface FileUriLike {
   readonly fsPath?: string;
   readonly path?: string;
+  readonly scheme?: string;
 }
 
 interface TextTabInputLike {
@@ -36,6 +37,10 @@ export function getActiveFilePathFromSources(
 }
 
 function getUsableUriPath(uri: FileUriLike | undefined): string | undefined {
+  if (uri?.scheme !== undefined && uri.scheme !== "file") {
+    return undefined;
+  }
+
   if (uri?.fsPath !== undefined && uri.fsPath !== "") {
     return uri.fsPath;
   }
