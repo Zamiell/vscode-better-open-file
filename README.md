@@ -36,6 +36,7 @@ To remap "Ctrl + S" for saving files, add:
   {
     "key": "ctrl+s",
     "command": "betterOpenFile.saveFile",
+    "when": "resourceScheme == untitled"
   },
 ```
 

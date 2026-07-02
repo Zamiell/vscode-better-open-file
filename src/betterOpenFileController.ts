@@ -36,7 +36,7 @@ export class BetterOpenFileController {
     }
 
     if (await fileExists(activeDocument)) {
-      await activeDocument.save();
+      await vscode.commands.executeCommand("workbench.action.files.save");
       return;
     }
 
