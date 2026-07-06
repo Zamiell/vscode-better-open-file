@@ -38,6 +38,10 @@ type HostToWebviewMessage =
 type WebviewToHostMessage =
   | {
       readonly currentDirectory: string;
+      readonly type: "copyCurrentPath";
+    }
+  | {
+      readonly currentDirectory: string;
       readonly type: "createFile";
     }
   | {
@@ -280,6 +284,19 @@ function registerEventHandlers() {
           pasteSelection();
           return;
         }
+      }
+
+      if (
+        event.altKey
+        && event.shiftKey
+        && !event.ctrlKey
+        && !event.metaKey
+        && event.key.toLowerCase() === "c"
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        copyCurrentPath();
+        return;
       }
 
       if (event.key === "Escape" && elements.contextMenu.hidden === false) {
@@ -1010,6 +1027,20 @@ function deleteSelection() {
     paths: selectedPaths,
     type: "deleteSelection",
   });
+}
+
+function copyCurrentPath() {
+  const currentDirectory = elements.addressInput.value.trim();
+  if (currentDirectory === "") {
+    showError("There is no current path to copy.");
+    return;
+  }
+
+  vscode.postMessage({
+    currentDirectory,
+    type: "copyCurrentPath",
+  });
+  hideError();
 }
 
 function copySelection() {

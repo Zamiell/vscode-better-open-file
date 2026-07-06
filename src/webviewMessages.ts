@@ -13,6 +13,10 @@ type WebviewMessage =
     }
   | {
       readonly currentDirectory: string;
+      readonly type: "copyCurrentPath";
+    }
+  | {
+      readonly currentDirectory: string;
       readonly type: "createFile";
     }
   | {
@@ -75,6 +79,11 @@ export async function handleMessage(
         message.path,
         onCurrentDirectoryDidChange,
       );
+      break;
+    }
+
+    case "copyCurrentPath": {
+      await vscode.env.clipboard.writeText(message.currentDirectory);
       break;
     }
 
@@ -494,6 +503,7 @@ function parseWebviewMessage(rawMessage: unknown): WebviewMessage | undefined {
       return { type: rawMessage["type"] };
     }
 
+    case "copyCurrentPath":
     case "createDirectory":
     case "createFile": {
       const { currentDirectory } = rawMessage;
