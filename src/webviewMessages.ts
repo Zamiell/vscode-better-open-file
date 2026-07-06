@@ -5,6 +5,7 @@ import { listDirectory } from "./dialogFilesystem.js";
 import type { DialogMode } from "./types.js";
 
 type ClipboardOperation = "copy" | "cut";
+type CurrentDirectoryDidChange = (currentDirectory: string) => void;
 
 type WebviewMessage =
   | {
@@ -53,6 +54,7 @@ export async function handleMessage(
   startupDirectory: string,
   mode: DialogMode,
   documentToSave?: vscode.TextDocument,
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
 ): Promise<void> {
   const message = parseWebviewMessage(rawMessage);
   if (message === undefined) {
@@ -62,18 +64,28 @@ export async function handleMessage(
 
   switch (message.type) {
     case "ready": {
-      await initialize(panel, startupDirectory);
+      await initialize(panel, startupDirectory, onCurrentDirectoryDidChange);
       break;
     }
 
     case "listDirectory":
     case "navigate": {
-      await sendDirectoryListing(panel, message.path);
+      await sendDirectoryListing(
+        panel,
+        message.path,
+        onCurrentDirectoryDidChange,
+      );
       break;
     }
 
     case "confirmSelection": {
-      await confirmSelection(panel, message.paths, mode, documentToSave);
+      await confirmSelection(
+        panel,
+        message.paths,
+        mode,
+        documentToSave,
+        onCurrentDirectoryDidChange,
+      );
       break;
     }
 
@@ -83,22 +95,36 @@ export async function handleMessage(
         message.currentDirectory,
         message.path,
         message.newName,
+        onCurrentDirectoryDidChange,
       );
       break;
     }
 
     case "createDirectory": {
-      await createDirectory(panel, message.currentDirectory);
+      await createDirectory(
+        panel,
+        message.currentDirectory,
+        onCurrentDirectoryDidChange,
+      );
       break;
     }
 
     case "createFile": {
-      await createFile(panel, message.currentDirectory);
+      await createFile(
+        panel,
+        message.currentDirectory,
+        onCurrentDirectoryDidChange,
+      );
       break;
     }
 
     case "deleteSelection": {
-      await deleteSelection(panel, message.currentDirectory, message.paths);
+      await deleteSelection(
+        panel,
+        message.currentDirectory,
+        message.paths,
+        onCurrentDirectoryDidChange,
+      );
       break;
     }
 
@@ -108,6 +134,7 @@ export async function handleMessage(
         message.currentDirectory,
         message.paths,
         message.operation,
+        onCurrentDirectoryDidChange,
       );
       break;
     }
@@ -122,12 +149,17 @@ export async function handleMessage(
 async function initialize(
   panel: vscode.WebviewPanel,
   startupDirectory: string,
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
 ) {
   await panel.webview.postMessage({
     directory: startupDirectory,
     type: "init",
   });
-  await sendDirectoryListing(panel, startupDirectory);
+  await sendDirectoryListing(
+    panel,
+    startupDirectory,
+    onCurrentDirectoryDidChange,
+  );
 }
 
 async function confirmSelection(
@@ -135,18 +167,25 @@ async function confirmSelection(
   selectedPaths: readonly string[],
   mode: DialogMode,
   documentToSave?: vscode.TextDocument,
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
 ) {
   if (mode === "save") {
-    await saveSelection(panel, selectedPaths, documentToSave);
+    await saveSelection(
+      panel,
+      selectedPaths,
+      documentToSave,
+      onCurrentDirectoryDidChange,
+    );
     return;
   }
 
-  await openSelection(panel, selectedPaths);
+  await openSelection(panel, selectedPaths, onCurrentDirectoryDidChange);
 }
 
 async function openSelection(
   panel: vscode.WebviewPanel,
   selectedPaths: readonly string[],
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
 ) {
   if (selectedPaths.length === 0) {
     await postError(panel, "Select a file to open.");
@@ -167,7 +206,11 @@ async function openSelection(
   const firstDirectory = selectedDirectories[0];
   if (firstDirectory !== undefined) {
     if (selectedFiles.length === 1) {
-      await sendDirectoryListing(panel, firstDirectory.absolutePath);
+      await sendDirectoryListing(
+        panel,
+        firstDirectory.absolutePath,
+        onCurrentDirectoryDidChange,
+      );
       return;
     }
 
@@ -210,6 +253,7 @@ async function saveSelection(
   panel: vscode.WebviewPanel,
   selectedPaths: readonly string[],
   documentToSave?: vscode.TextDocument,
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
 ) {
   try {
     if (documentToSave === undefined) {
@@ -236,7 +280,11 @@ async function saveSelection(
     const absolutePath = path.resolve(selectedPath);
     const existingStat = await getStat(absolutePath);
     if (existingStat?.isDirectory() === true) {
-      await sendDirectoryListing(panel, absolutePath);
+      await sendDirectoryListing(
+        panel,
+        absolutePath,
+        onCurrentDirectoryDidChange,
+      );
       return;
     }
 
@@ -269,6 +317,7 @@ async function saveSelection(
 async function createDirectory(
   panel: vscode.WebviewPanel,
   currentDirectory: string,
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
 ) {
   try {
     const absoluteDirectory = path.resolve(currentDirectory);
@@ -282,6 +331,7 @@ async function createDirectory(
     await sendDirectoryListing(
       panel,
       absoluteDirectory,
+      onCurrentDirectoryDidChange,
       newDirectoryPath,
       newDirectoryPath,
     );
@@ -293,6 +343,7 @@ async function createDirectory(
 async function createFile(
   panel: vscode.WebviewPanel,
   currentDirectory: string,
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
 ) {
   try {
     const absoluteDirectory = path.resolve(currentDirectory);
@@ -306,6 +357,7 @@ async function createFile(
     await sendDirectoryListing(
       panel,
       absoluteDirectory,
+      onCurrentDirectoryDidChange,
       newFilePath,
       newFilePath,
     );
@@ -319,6 +371,7 @@ async function renameSelection(
   currentDirectory: string,
   selectedPath: string,
   newName: string,
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
 ) {
   try {
     const absoluteDirectory = path.resolve(currentDirectory);
@@ -338,6 +391,7 @@ async function renameSelection(
       await sendDirectoryListing(
         panel,
         absoluteDirectory,
+        onCurrentDirectoryDidChange,
         absoluteSelectedPath,
       );
       return;
@@ -345,7 +399,12 @@ async function renameSelection(
 
     await assertRenameTargetIsAvailable(absoluteSelectedPath, renamedPath);
     await fs.rename(absoluteSelectedPath, renamedPath);
-    await sendDirectoryListing(panel, absoluteDirectory, renamedPath);
+    await sendDirectoryListing(
+      panel,
+      absoluteDirectory,
+      onCurrentDirectoryDidChange,
+      renamedPath,
+    );
   } catch (error) {
     await postError(panel, getErrorMessage(error));
   }
@@ -355,6 +414,7 @@ async function deleteSelection(
   panel: vscode.WebviewPanel,
   currentDirectory: string,
   selectedPaths: readonly string[],
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
 ) {
   try {
     if (selectedPaths.length === 0) {
@@ -390,7 +450,11 @@ async function deleteSelection(
       }),
     );
 
-    await sendDirectoryListing(panel, currentDirectory);
+    await sendDirectoryListing(
+      panel,
+      currentDirectory,
+      onCurrentDirectoryDidChange,
+    );
   } catch (error) {
     await postError(panel, getErrorMessage(error));
   }
@@ -399,12 +463,14 @@ async function deleteSelection(
 async function sendDirectoryListing(
   panel: vscode.WebviewPanel,
   requestedPath: string,
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
   selectedPath?: string,
   renamePath?: string,
   clearClipboard = false,
 ) {
   try {
     const listing = await listDirectory(requestedPath);
+    onCurrentDirectoryDidChange?.(listing.path);
     await panel.webview.postMessage({
       clearClipboard,
       listing,
@@ -656,6 +722,7 @@ async function pasteSelection(
   currentDirectory: string,
   selectedPaths: readonly string[],
   operation: ClipboardOperation,
+  onCurrentDirectoryDidChange?: CurrentDirectoryDidChange,
 ) {
   try {
     if (selectedPaths.length === 0) {
@@ -684,6 +751,7 @@ async function pasteSelection(
     await sendDirectoryListing(
       panel,
       absoluteDirectory,
+      onCurrentDirectoryDidChange,
       lastPastedPath,
       undefined,
       operation === "cut",

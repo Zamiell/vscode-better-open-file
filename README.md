@@ -59,6 +59,7 @@ The aim is to be in the [Goldilocks zone](https://en.wikipedia.org/wiki/Goldiloc
   - Refresh (F5)
   - New File (Ctrl + Shift + M)
   - New Directory (Ctrl + Shift + N)
+  - Copy Current Path (Alt + Shift + C)
 - Bottom-right buttons with hotkeys:
   - Open or Save (Enter)
   - Cancel (Escape)

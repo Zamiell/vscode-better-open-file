@@ -52,6 +52,18 @@
         "command": "betterOpenFile.saveFile",
         "title": "Save File",
         "category": "Better Open File"
+      },
+      {
+        "command": "betterOpenFile.copyCurrentPath",
+        "title": "Copy Current Path",
+        "category": "Better Open File"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "betterOpenFile.copyCurrentPath",
+        "key": "alt+shift+c",
+        "when": "webviewId == 'betterOpenFile.open' || webviewId == 'betterOpenFile.save'"
       }
     ]
   },

@@ -12,6 +12,10 @@ export class BetterOpenFileController {
 
   private lastActiveFilePath: string | undefined;
 
+  private activeMode: DialogMode | undefined;
+
+  private readonly currentDirectories = new Map<DialogMode, string>();
+
   private readonly panels = new Map<DialogMode, vscode.WebviewPanel>();
 
   public constructor(context: vscode.ExtensionContext) {
@@ -36,7 +40,10 @@ export class BetterOpenFileController {
     }
 
     if (await fileExists(activeDocument)) {
-      await vscode.commands.executeCommand("workbench.action.files.save");
+      await vscode.commands.executeCommand(
+        "workbench.action.files.save",
+        undefined,
+      );
       return;
     }
 
@@ -44,9 +51,27 @@ export class BetterOpenFileController {
     await this.showDialog("save");
   }
 
+  public async copyCurrentPath(): Promise<void> {
+    const activeMode = this.getActivePanelMode();
+    const currentDirectory =
+      activeMode === undefined
+        ? undefined
+        : this.currentDirectories.get(activeMode);
+    if (currentDirectory === undefined) {
+      await vscode.window.showErrorMessage(
+        "Open a Better Open File dialog before copying its path.",
+        "OK",
+      );
+      return;
+    }
+
+    await vscode.env.clipboard.writeText(currentDirectory);
+  }
+
   private async showDialog(mode: DialogMode): Promise<void> {
     const existingPanel = this.panels.get(mode);
     if (existingPanel !== undefined) {
+      this.activeMode = mode;
       existingPanel.reveal(vscode.ViewColumn.Active);
       return;
     }
@@ -67,9 +92,23 @@ export class BetterOpenFileController {
     );
 
     this.panels.set(mode, panel);
+    this.activeMode = mode;
+    panel.onDidChangeViewState(
+      (event) => {
+        if (event.webviewPanel.active) {
+          this.activeMode = mode;
+        }
+      },
+      undefined,
+      this.context.subscriptions,
+    );
     panel.onDidDispose(
       () => {
         this.panels.delete(mode);
+        this.currentDirectories.delete(mode);
+        if (this.activeMode === mode) {
+          this.activeMode = undefined;
+        }
         if (mode === "save") {
           this.documentToSave = undefined;
         }
@@ -91,6 +130,9 @@ export class BetterOpenFileController {
           startupDirectory,
           mode,
           this.documentToSave,
+          (currentDirectory) => {
+            this.currentDirectories.set(mode, currentDirectory);
+          },
         );
       },
       undefined,
@@ -105,6 +147,16 @@ export class BetterOpenFileController {
     if (activeDocument !== undefined && isLocalFileDocument(activeDocument)) {
       this.lastActiveFilePath = activeDocument.uri.fsPath;
     }
+  }
+
+  private getActivePanelMode(): DialogMode | undefined {
+    for (const [mode, panel] of this.panels) {
+      if (panel.active) {
+        return mode;
+      }
+    }
+
+    return this.activeMode;
   }
 }
 

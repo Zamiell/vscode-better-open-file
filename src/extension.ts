@@ -10,5 +10,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("betterOpenFile.saveFile", async () => {
       await controller.save();
     }),
+    vscode.commands.registerCommand(
+      "betterOpenFile.copyCurrentPath",
+      async () => {
+        await controller.copyCurrentPath();
+      },
+    ),
   );
 }
