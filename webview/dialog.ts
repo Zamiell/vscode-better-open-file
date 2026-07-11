@@ -1154,12 +1154,13 @@ function handleFileListKeydown(event: KeyboardEvent) {
     return;
   }
 
-  if (state.filteredEntries.length === 0) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    confirmSelection();
     return;
   }
 
-  if (event.key === "Enter") {
-    confirmSelection();
+  if (state.filteredEntries.length === 0) {
     return;
   }
 

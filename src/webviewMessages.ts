@@ -312,6 +312,7 @@ async function saveSelection(
     }
 
     await writeDocumentToPath(documentToSave, absolutePath);
+    await closeOriginalUntitledDocument(documentToSave);
     panel.dispose();
 
     const savedDocument = await vscode.workspace.openTextDocument(
@@ -670,6 +671,20 @@ async function writeDocumentToPath(
   await vscode.workspace.fs.writeFile(
     targetUri,
     Buffer.from(documentToSave.getText()),
+  );
+}
+
+async function closeOriginalUntitledDocument(
+  documentToSave: vscode.TextDocument,
+) {
+  if (!documentToSave.isUntitled) {
+    return;
+  }
+
+  await vscode.window.showTextDocument(documentToSave, { preview: false });
+  await vscode.commands.executeCommand(
+    "workbench.action.revertAndCloseActiveEditor",
+    undefined,
   );
 }
 
